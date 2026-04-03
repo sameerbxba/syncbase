@@ -2155,7 +2155,114 @@ export default function App() {
     (async () => {
       const d = await load();
       if (d?.projects?.length) { setProjects(d.projects); }
-      else setProjects([SAMPLE]);
+const SAMPLE2 = {
+  id: uid(), name: "Checkout Flow Optimization", description: "Reduce cart abandonment by 25% through a streamlined 2-step checkout with Apple Pay and Google Pay integration.", palette: "emerald", status: "at-risk", startDate: daysFromNow(-45), endDate: daysFromNow(15), currentWeek: 7, totalWeeks: 9,
+  tags: ["Revenue Critical", "Q2 Launch", "Experiment"],
+  archived: false,
+  sprintConfig: { type: "sprint", length: 2, currentSprint: 4, phases: [] },
+  okrs: [
+    { id: uid(), objective: "Reduce cart abandonment rate from 68% to 51%", keyResults: [{ id: uid(), title: "Checkout completion rate reaches 49%", progress: 72 }, { id: uid(), title: "Average checkout time under 90 seconds", progress: 45 }, { id: uid(), title: "Apple Pay adoption hits 30% of mobile transactions", progress: 20 }] },
+  ],
+  integrations: { slack: "#checkout-squad", jira: "", gcal: true },
+  stakeholders: [
+    { id: uid(), name: "Alex Rivera", role: "Senior Engineer", team: "Payments", avatar: "AR", syncStatus: "synced", lastActive: daysFromNow(0), permission: "contributor", notifyPref: "all" },
+    { id: uid(), name: "Nina Okafor", role: "UX Researcher", team: "Design", avatar: "NO", syncStatus: "synced", lastActive: daysFromNow(-1), permission: "contributor", notifyPref: "all" },
+    { id: uid(), name: "Tom Bradley", role: "VP Revenue", team: "Leadership", avatar: "TB", syncStatus: "needs-update", lastActive: daysFromNow(-8), permission: "viewer", notifyPref: "weekly" },
+    { id: uid(), name: "Lena Park", role: "Data Analyst", team: "Analytics", avatar: "LP", syncStatus: "synced", lastActive: daysFromNow(-2), permission: "viewer", notifyPref: "tagged" },
+    { id: uid(), name: "James Morton", role: "Legal Counsel", team: "Legal", avatar: "JM", syncStatus: "needs-update", lastActive: daysFromNow(-12), permission: "viewer", notifyPref: "weekly" },
+  ],
+  updates: [
+    { id: uid(), date: daysFromNow(0), title: "Apple Pay sandbox certification delayed", author: "Alex Rivera", status: "blocked", type: "blocker", body: "Apple rejected our sandbox submission due to missing entitlements. Re-submitting today but turnaround is 3-5 business days. This puts the launch date at risk.", comments: [{ id: uid(), author: "You", text: "Can we launch with Google Pay first and add Apple Pay in a fast-follow?", date: daysFromNow(0) }, { id: uid(), author: "Alex", text: "Yes, Google Pay is ready. We'd need to update the launch comms though.", date: daysFromNow(0) }] },
+    { id: uid(), date: daysFromNow(-3), title: "A/B test results: 2-step checkout wins", author: "Lena Park", status: "completed", type: "milestone", body: "2-step flow shows 18% higher completion rate vs. current 4-step flow (p<0.01, n=12,400). Recommending full rollout.", comments: [{ id: uid(), author: "Nina", text: "The qualitative feedback was strong too — users said it felt much faster.", date: daysFromNow(-2) }] },
+    { id: uid(), date: daysFromNow(-7), title: "Legal review pending on payment data retention", author: "You", status: "at-risk", type: "update", body: "James flagged that our new tokenization approach needs legal sign-off. He's been OOO and hasn't responded to follow-ups. Escalating to his manager.", comments: [] },
+    { id: uid(), date: daysFromNow(-10), title: "Guest checkout prototype tested with 8 users", author: "Nina Okafor", status: "completed", type: "update", body: "6/8 users completed checkout without creating an account. Main friction point: address auto-fill failed on 2 browsers. Engineering investigating.", comments: [] },
+    { id: uid(), date: daysFromNow(-14), title: "Sprint 3 velocity drop due to PTO", author: "You", status: "at-risk", type: "update", body: "Only completed 22 of 30 planned story points. Two engineers on vacation. Carrying over payment error handling and retry logic to Sprint 4.", comments: [] },
+  ],
+  decisions: [
+    { id: uid(), date: daysFromNow(-4), title: "Ship Google Pay first, Apple Pay in fast-follow", decidedBy: "PM + Engineering + VP Revenue", rationale: "Apple certification delay threatens the launch date. Google Pay is ready and covers 40% of our mobile users. Shipping now captures revenue impact sooner.", alternatives: ["Wait for both to ship together", "Launch without any mobile wallet"], impact: "high", status: "approved", comments: [{ id: uid(), author: "Tom", text: "Agree. Revenue impact of waiting another 2 weeks outweighs the benefit of a simultaneous launch.", date: daysFromNow(-3) }] },
+    { id: uid(), date: daysFromNow(-8), title: "Remove account creation requirement at checkout", decidedBy: "PM + UX + Data", rationale: "A/B test showed 23% drop-off at the account creation step. Guest checkout with optional account creation post-purchase preserves conversion.", alternatives: ["Keep mandatory account creation", "Require email only, defer password"], impact: "high", status: "approved", comments: [] },
+    { id: uid(), date: daysFromNow(-15), title: "Use Stripe tokenization instead of in-house", decidedBy: "PM + Engineering + Legal", rationale: "In-house tokenization requires PCI DSS Level 1 audit ($50K+). Stripe handles compliance. Trade-off: 2.9% per transaction vs. 2.2% in-house.", alternatives: ["Build in-house tokenization", "Use Adyen instead of Stripe"], impact: "medium", status: "approved", comments: [] },
+  ],
+  actions: [
+    { id: uid(), title: "Re-submit Apple Pay sandbox entitlements", owner: "Alex Rivera", dueDate: daysFromNow(1), priority: "high", status: "in-progress", project: "Engineering" },
+    { id: uid(), title: "Get legal sign-off on data retention policy", owner: "You", dueDate: daysFromNow(-3), priority: "high", status: "todo", project: "Legal" },
+    { id: uid(), title: "Update launch email to reflect Google Pay only", owner: "You", dueDate: daysFromNow(3), priority: "medium", status: "todo", project: "Marketing" },
+    { id: uid(), title: "Set up conversion tracking for new checkout flow", owner: "Lena Park", dueDate: daysFromNow(5), priority: "high", status: "in-progress", project: "Analytics" },
+    { id: uid(), title: "Brief VP Revenue on revised launch scope", owner: "You", dueDate: daysFromNow(1), priority: "high", status: "todo", project: "Leadership" },
+    { id: uid(), title: "Address auto-fill browser compatibility fix", owner: "Alex Rivera", dueDate: daysFromNow(4), priority: "medium", status: "todo", project: "Engineering" },
+  ],
+  raci: { workstreams: [{ id: "ws1", name: "Payment Integration" }, { id: "ws2", name: "UX & Testing" }, { id: "ws3", name: "Legal & Compliance" }, { id: "ws4", name: "Launch & GTM" }], assignments: {} },
+};
+
+const SAMPLE3 = {
+  id: uid(), name: "Internal Knowledge Base", description: "Company-wide wiki replacing scattered Notion, Confluence, and Google Docs with a unified search-first knowledge platform.", palette: "rose", status: "on-track", startDate: daysFromNow(-60), endDate: daysFromNow(30), currentWeek: 9, totalWeeks: 13,
+  tags: ["Internal Tool", "Engineering Platform"],
+  archived: false,
+  sprintConfig: { type: "phase", length: 0, currentSprint: 0, phases: [{ id: uid(), name: "Discovery", status: "completed" }, { id: uid(), name: "Content Migration", status: "active" }, { id: uid(), name: "Beta Launch", status: "pending" }, { id: uid(), name: "Full Rollout", status: "pending" }] },
+  okrs: [
+    { id: uid(), objective: "Reduce time-to-find-information by 60%", keyResults: [{ id: uid(), title: "Average search-to-answer time under 30 seconds", progress: 40 }, { id: uid(), title: "90% of teams have migrated their docs", progress: 55 }] },
+  ],
+  integrations: { slack: "#knowledge-base", jira: "", gcal: false },
+  stakeholders: [
+    { id: uid(), name: "Rachel Kim", role: "Engineering Manager", team: "Platform", avatar: "RK", syncStatus: "synced", lastActive: daysFromNow(-1), permission: "contributor", notifyPref: "all" },
+    { id: uid(), name: "Omar Hassan", role: "Technical Writer", team: "Content", avatar: "OH", syncStatus: "synced", lastActive: daysFromNow(0), permission: "contributor", notifyPref: "all" },
+    { id: uid(), name: "Sophie Turner", role: "Head of People Ops", team: "HR", avatar: "ST", syncStatus: "synced", lastActive: daysFromNow(-3), permission: "viewer", notifyPref: "weekly" },
+  ],
+  updates: [
+    { id: uid(), date: daysFromNow(-2), title: "Search indexing performance improved 3x", author: "Rachel Kim", status: "on-track", type: "milestone", body: "Switched from basic text search to vector embeddings. Search latency dropped from 1.2s to 380ms. Full-text + semantic search now works across all migrated docs.", comments: [{ id: uid(), author: "Omar", text: "This is a huge improvement. The old search was the #1 complaint in the beta survey.", date: daysFromNow(-1) }] },
+    { id: uid(), date: daysFromNow(-5), title: "Engineering team docs 100% migrated", author: "Omar Hassan", status: "completed", type: "milestone", body: "All 340 engineering docs moved from Confluence. Auto-redirects set up for old URLs. Zero broken links confirmed.", comments: [] },
+    { id: uid(), date: daysFromNow(-9), title: "HR team requesting custom permissions", author: "Sophie Turner", status: "on-track", type: "update", body: "HR needs certain docs (compensation bands, PIP templates) restricted to managers only. Adding role-based access control to the backlog for Sprint 6.", comments: [] },
+    { id: uid(), date: daysFromNow(-15), title: "Beta launch to 3 teams", author: "You", status: "completed", type: "milestone", body: "Engineering, Design, and Product teams now using the new KB. 78% weekly active rate in first 2 weeks. Top feedback: search is fast, navigation needs work.", comments: [{ id: uid(), author: "Rachel", text: "Navigation redesign is planned for next sprint. We heard the same feedback from 4 different teams.", date: daysFromNow(-14) }] },
+  ],
+  decisions: [
+    { id: uid(), date: daysFromNow(-4), title: "Use vector search instead of keyword-only", decidedBy: "PM + Engineering", rationale: "Keyword search missed 40% of relevant results in testing. Vector embeddings surface semantically related content even when exact terms differ.", alternatives: ["Stick with keyword search", "Use Algolia hosted search"], impact: "high", status: "approved", comments: [] },
+    { id: uid(), date: daysFromNow(-12), title: "Migrate Confluence first, Notion second", decidedBy: "PM + Content + Engineering", rationale: "Confluence has 2x more docs and the API is better documented. Notion migration requires custom parsing. Doing Confluence first covers 65% of content.", alternatives: ["Migrate both simultaneously", "Start with Notion (smaller set)"], impact: "medium", status: "approved", comments: [] },
+  ],
+  actions: [
+    { id: uid(), title: "Build role-based access control for HR docs", owner: "Rachel Kim", dueDate: daysFromNow(8), priority: "high", status: "in-progress", project: "Platform" },
+    { id: uid(), title: "Migrate Product team docs from Notion", owner: "Omar Hassan", dueDate: daysFromNow(6), priority: "medium", status: "in-progress", project: "Content" },
+    { id: uid(), title: "Redesign navigation sidebar", owner: "Rachel Kim", dueDate: daysFromNow(12), priority: "medium", status: "todo", project: "Platform" },
+    { id: uid(), title: "Write onboarding guide for new KB", owner: "Omar Hassan", dueDate: daysFromNow(10), priority: "low", status: "todo", project: "Content" },
+  ],
+  raci: { workstreams: [], assignments: {} },
+};
+
+const SAMPLE4 = {
+  id: uid(), name: "Customer Onboarding Revamp", description: "Redesign the first-7-days experience to improve activation rate from 32% to 55% and reduce time-to-value.", palette: "amber", status: "completed", startDate: daysFromNow(-90), endDate: daysFromNow(-10), currentWeek: 12, totalWeeks: 12,
+  tags: ["Growth", "Completed", "Case Study"],
+  archived: false,
+  sprintConfig: { type: "sprint", length: 2, currentSprint: 6, phases: [] },
+  okrs: [
+    { id: uid(), objective: "Improve new user activation to 55%", keyResults: [{ id: uid(), title: "Day-7 activation rate reaches 55%", progress: 95 }, { id: uid(), title: "Time-to-first-value under 3 minutes", progress: 100 }, { id: uid(), title: "Support tickets from new users drop 40%", progress: 85 }] },
+  ],
+  integrations: { slack: "#onboarding-squad", jira: "", gcal: false },
+  stakeholders: [
+    { id: uid(), name: "Maya Thompson", role: "Growth PM", team: "Growth", avatar: "MT", syncStatus: "synced", lastActive: daysFromNow(-10), permission: "contributor", notifyPref: "all" },
+    { id: uid(), name: "Carlos Diaz", role: "Frontend Engineer", team: "Engineering", avatar: "CD", syncStatus: "synced", lastActive: daysFromNow(-10), permission: "contributor", notifyPref: "all" },
+    { id: uid(), name: "Amy Liu", role: "Customer Success Lead", team: "CS", avatar: "AL", syncStatus: "synced", lastActive: daysFromNow(-12), permission: "contributor", notifyPref: "all" },
+    { id: uid(), name: "Ben Foster", role: "Head of Product", team: "Leadership", avatar: "BF", syncStatus: "synced", lastActive: daysFromNow(-11), permission: "viewer", notifyPref: "weekly" },
+  ],
+  updates: [
+    { id: uid(), date: daysFromNow(-10), title: "Project shipped. Activation rate hit 52%.", author: "You", status: "completed", type: "milestone", body: "Launched the new onboarding flow to 100% of new signups. Day-7 activation rate is 52%, up from 32% baseline. Slightly below 55% target but a 63% improvement. Monitoring for the next 2 weeks before declaring final.", comments: [{ id: uid(), author: "Ben", text: "Incredible result. This is the biggest activation improvement we've had in 2 years. Well done team.", date: daysFromNow(-10) }, { id: uid(), author: "Amy", text: "Support tickets from new users are down 38% already. Almost at the 40% target.", date: daysFromNow(-9) }] },
+    { id: uid(), date: daysFromNow(-18), title: "Final A/B test: interactive tutorial wins", author: "Maya Thompson", status: "completed", type: "update", body: "Interactive tutorial (variant B) achieved 48% activation vs. 35% for video walkthrough (variant A). Statistical significance reached at n=8,200. Proceeding with full rollout of variant B.", comments: [] },
+    { id: uid(), date: daysFromNow(-25), title: "Reduced onboarding steps from 8 to 3", author: "Carlos Diaz", status: "completed", type: "milestone", body: "Consolidated the signup flow from 8 screens to 3. Removed company size, role selector, and use case questions from initial flow. Moved to progressive profiling after activation.", comments: [] },
+    { id: uid(), date: daysFromNow(-35), title: "Customer interviews revealed setup confusion", author: "Amy Liu", status: "completed", type: "update", body: "Interviewed 15 churned users. 11/15 cited the same problem: they signed up but didn't know what to do next. The empty state after signup was a dead end. This validated our hypothesis.", comments: [] },
+    { id: uid(), date: daysFromNow(-50), title: "Baseline metrics established", author: "You", status: "completed", type: "update", body: "Current state: 32% day-7 activation, 6.5 min time-to-first-value, 45 support tickets/week from new users. These are our benchmarks.", comments: [] },
+  ],
+  decisions: [
+    { id: uid(), date: daysFromNow(-20), title: "Use interactive tutorial instead of video walkthrough", decidedBy: "PM + Growth + Engineering", rationale: "A/B test showed 37% higher activation rate for interactive tutorial. Video had higher satisfaction scores but lower completion rates — users dropped off at 2-minute mark.", alternatives: ["Video walkthrough", "Tooltip-based tour", "No tutorial (self-serve only)"], impact: "high", status: "approved", comments: [] },
+    { id: uid(), date: daysFromNow(-30), title: "Move to progressive profiling", decidedBy: "PM + Growth + Data", rationale: "Collecting company info upfront caused 28% abandonment at signup. Progressive profiling asks questions contextually after the user has experienced value.", alternatives: ["Keep upfront profiling", "Remove profiling entirely"], impact: "high", status: "approved", comments: [] },
+    { id: uid(), date: daysFromNow(-40), title: "Target 55% activation as the north star", decidedBy: "PM + Head of Product", rationale: "Industry benchmark for B2B SaaS is 40-60% day-7 activation. We're at 32%. Setting 55% as the target gives us room for a meaningful improvement while being achievable in 12 weeks.", alternatives: ["Target 45% (conservative)", "Target 65% (aggressive)"], impact: "medium", status: "approved", comments: [{ id: uid(), author: "Ben", text: "55% is the right call. Aggressive enough to matter, realistic enough to hit.", date: daysFromNow(-39) }] },
+  ],
+  actions: [
+    { id: uid(), title: "Monitor activation metrics for 2 weeks post-launch", owner: "Maya Thompson", dueDate: daysFromNow(-3), priority: "high", status: "done", project: "Growth" },
+    { id: uid(), title: "Write post-mortem and share learnings", owner: "You", dueDate: daysFromNow(5), priority: "medium", status: "todo", project: "Product" },
+    { id: uid(), title: "Plan V2 improvements based on post-launch data", owner: "You", dueDate: daysFromNow(10), priority: "low", status: "todo", project: "Product" },
+  ],
+  raci: { workstreams: [], assignments: {} },
+};
+
+      else setProjects([SAMPLE, SAMPLE2, SAMPLE3, SAMPLE4]);
       setView("list");
     })();
   }, [user]);
