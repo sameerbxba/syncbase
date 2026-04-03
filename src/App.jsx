@@ -1408,8 +1408,8 @@ function ProjectList({ projects, onSelect, onNew, onHome, dark, toggleDark, user
         {/* Welcome + actions row */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, animation: "fu .4s ease both" }}>
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-.02em" }}>
-              {user ? `Welcome back, ${user.firstName}` : "Your Projects"}
+            <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-.02em", color: "var(--txt)" }}>
+              {user ? `Welcome, ${user.firstName}` : "Your Projects"}
             </h1>
             <p style={{ fontSize: 13.5, color: "var(--t2)", marginTop: 4 }}>
               {activeProjects.length} active project{activeProjects.length !== 1 ? "s" : ""} · {openActions} open action{openActions !== 1 ? "s" : ""}{overdueActions > 0 ? ` · ${overdueActions} overdue` : ""}
@@ -1673,78 +1673,74 @@ function ProjectList({ projects, onSelect, onNew, onHome, dark, toggleDark, user
 
 // ── Auth Page ──
 function AuthPage({ onAuth }) {
-  const [mode, setMode] = useState("login"); // login | signup
+  const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [company, setCompany] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const activePw = mode === "forgot" ? newPassword : password;
   const validate = () => {
     if (!email.trim() || !email.includes("@") || !email.includes(".")) return "Please enter a valid email address.";
-    if (mode === "signup") {
-      if (!firstName.trim()) return "First name is required.";
-      const pwErr = validatePassword(password);
-      if (pwErr) return pwErr;
-    } else {
-      if (!password) return "Please enter your password.";
-    }
+    if (mode === "signup") { if (!firstName.trim()) return "First name is required."; return validatePassword(password); }
+    if (mode === "login" && !password) return "Please enter your password.";
+    if (mode === "forgot") return validatePassword(newPassword);
     return null;
   };
 
   const pwChecks = [
-    { label: "8+ characters", pass: password.length >= 8 },
-    { label: "Uppercase letter", pass: /[A-Z]/.test(password) },
-    { label: "Lowercase letter", pass: /[a-z]/.test(password) },
-    { label: "Number", pass: /[0-9]/.test(password) },
+    { label: "8+ chars", pass: activePw.length >= 8 },
+    { label: "Uppercase", pass: /[A-Z]/.test(activePw) },
+    { label: "Lowercase", pass: /[a-z]/.test(activePw) },
+    { label: "Number", pass: /[0-9]/.test(activePw) },
   ];
 
   const handleSubmit = async () => {
     const err = validate();
-    if (err) { setError(err); return; }
-    setError(""); setLoading(true);
-
+    if (err) { setError(err); setSuccess(""); return; }
+    setError(""); setSuccess(""); setLoading(true);
     try {
       let users = await loadUsers();
       if (!Array.isArray(users)) users = [];
 
       if (mode === "signup") {
-        if (users.find(u => u.email === email.trim().toLowerCase())) {
-          setError("An account with this email already exists. Try signing in."); setLoading(false); return;
-        }
-        const user = {
-          id: uid(),
-          email: email.trim().toLowerCase(),
-          pwHash: hashPw(password),
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          company: company.trim(),
-          avatar: (firstName[0] + (lastName[0] || "")).toUpperCase(),
-          createdAt: new Date().toISOString(),
-        };
-        const newUsers = [...users, user];
-        await saveUsers(newUsers);
+        if (users.find(u => u.email === email.trim().toLowerCase())) { setError("An account with this email already exists. Try signing in."); setLoading(false); return; }
+        const user = { id: uid(), email: email.trim().toLowerCase(), pwHash: hashPw(password), firstName: firstName.trim(), lastName: lastName.trim(), company: company.trim(), avatar: (firstName[0] + (lastName[0] || "")).toUpperCase(), createdAt: new Date().toISOString() };
+        await saveUsers([...users, user]);
         await saveAuth({ userId: user.id, loggedIn: true });
+        setLoading(false); onAuth(user);
+      } else if (mode === "forgot") {
+        const idx = users.findIndex(u => u.email === email.trim().toLowerCase());
+        if (idx === -1) { setError("No account found with this email."); setLoading(false); return; }
+        users[idx].pwHash = hashPw(newPassword);
+        await saveUsers(users);
+        setSuccess("Password reset successfully. You can now sign in.");
         setLoading(false);
-        onAuth(user);
+        setTimeout(() => { setMode("login"); setPassword(""); setNewPassword(""); setSuccess(""); }, 2000);
       } else {
-        const inputHash = hashPw(password);
         const user = users.find(u => u.email === email.trim().toLowerCase());
         if (!user) { setError("No account found with this email. Try signing up."); setLoading(false); return; }
-        if (user.pwHash !== inputHash) { setError("Incorrect password. Please try again."); setLoading(false); return; }
+        if (user.pwHash !== hashPw(password)) { setError("Incorrect password. Please try again."); setLoading(false); return; }
         await saveAuth({ userId: user.id, loggedIn: true });
-        setLoading(false);
-        onAuth(user);
+        setLoading(false); onAuth(user);
       }
-    } catch (e) {
-      setError("Something went wrong. Please try again.");
-      setLoading(false);
-    }
+    } catch (e) { setError("Something went wrong. Please try again."); setLoading(false); }
   };
 
-  const switchMode = () => { setMode(mode === "login" ? "signup" : "login"); setError(""); };
+  const go = (m) => { setMode(m); setError(""); setSuccess(""); };
+  const titles = { login: "Welcome", signup: "Create your account", forgot: "Reset password" };
+  const subs = { login: "Sign in to access your projects", signup: "Get started with SyncBase in seconds", forgot: "Enter your email and choose a new password" };
+
+  const PwIndicator = () => activePw.length > 0 ? (
+    <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+      {pwChecks.map((c, i) => <span key={i} style={{ fontSize: 10, padding: "2px 7px", borderRadius: 100, background: c.pass ? "rgba(16,185,129,.15)" : "rgba(255,255,255,.06)", color: c.pass ? "#34d399" : "rgba(255,255,255,.3)", fontWeight: 500 }}>{c.pass ? "\u2713" : "\u25CB"} {c.label}</span>)}
+    </div>
+  ) : null;
 
   return (
     <div className="auth-wrap">
@@ -1761,53 +1757,59 @@ function AuthPage({ onAuth }) {
           </div>
         )}
 
-        <h2>{mode === "login" ? "Welcome" : "Create your account"}</h2>
-        <p className="auth-sub">{mode === "login" ? "Sign in to access your projects" : "Get started with SyncBase in seconds"}</p>
+        <h2>{titles[mode]}</h2>
+        <p className="auth-sub">{subs[mode]}</p>
 
         {error && <div className="auth-err">{error}</div>}
+        {success && <div style={{ padding: "10px 14px", borderRadius: 8, background: "rgba(16,185,129,.12)", border: "1px solid rgba(16,185,129,.25)", color: "#34d399", fontSize: 12.5, marginBottom: 16 }}>{success}</div>}
 
         {mode === "signup" && (
           <>
             <div className="auth-name-row">
-              <div className="auth-fld">
-                <label>First name *</label>
-                <input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Jordan" autoFocus />
-              </div>
-              <div className="auth-fld">
-                <label>Last name</label>
-                <input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Park" />
-              </div>
+              <div className="auth-fld"><label>First name *</label><input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Jordan" autoFocus /></div>
+              <div className="auth-fld"><label>Last name</label><input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Park" /></div>
             </div>
-            <div className="auth-fld">
-              <label>Company / Team</label>
-              <input value={company} onChange={e => setCompany(e.target.value)} placeholder="Acme Inc." />
-            </div>
+            <div className="auth-fld"><label>Company / Team</label><input value={company} onChange={e => setCompany(e.target.value)} placeholder="Acme Inc." /></div>
           </>
         )}
 
         <div className="auth-fld">
           <label>Email address *</label>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" autoFocus={mode === "login"} onKeyDown={e => e.key === "Enter" && handleSubmit()} />
-        </div>
-        <div className="auth-fld">
-          <label>Password *</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={mode === "signup" ? "Create a strong password" : "Enter your password"} onKeyDown={e => e.key === "Enter" && handleSubmit()} />
-          {mode === "signup" && password.length > 0 && (
-            <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-              {pwChecks.map((c, i) => (
-                <span key={i} style={{ fontSize: 10.5, padding: "2px 8px", borderRadius: 100, background: c.pass ? "rgba(16,185,129,.15)" : "rgba(255,255,255,.06)", color: c.pass ? "#34d399" : "rgba(255,255,255,.3)", fontWeight: 500, transition: "all .2s" }}>{c.pass ? "✓" : "○"} {c.label}</span>
-              ))}
-            </div>
-          )}
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" autoFocus={mode !== "signup"} onKeyDown={e => e.key === "Enter" && handleSubmit()} />
         </div>
 
+        {mode === "login" && (
+          <div className="auth-fld">
+            <label>Password *</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+            <button onClick={() => go("forgot")} style={{ background: "none", border: "none", color: "#818cf8", fontSize: 11.5, fontFamily: "var(--f)", cursor: "pointer", marginTop: 6, padding: 0 }}>Forgot password?</button>
+          </div>
+        )}
+
+        {mode === "signup" && (
+          <div className="auth-fld">
+            <label>Password *</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Create a strong password" onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+            <PwIndicator />
+          </div>
+        )}
+
+        {mode === "forgot" && (
+          <div className="auth-fld">
+            <label>New password *</label>
+            <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Enter a new password" onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+            <PwIndicator />
+          </div>
+        )}
+
         <button className="auth-btn auth-btn-primary" onClick={handleSubmit} disabled={loading}>
-          {loading ? "Loading..." : mode === "login" ? "Sign in" : "Create account"}
+          {loading ? "Loading..." : mode === "login" ? "Sign in" : mode === "signup" ? "Create account" : "Reset password"}
         </button>
 
         <div className="auth-switch">
-          {mode === "login" ? "Don't have an account?" : "Already have an account?"}
-          <button onClick={switchMode}>{mode === "login" ? "Sign up" : "Sign in"}</button>
+          {mode === "login" && <>Don't have an account? <button onClick={() => go("signup")}>Sign up</button></>}
+          {mode === "signup" && <>Already have an account? <button onClick={() => go("login")}>Sign in</button></>}
+          {mode === "forgot" && <>Remember your password? <button onClick={() => go("login")}>Sign in</button></>}
         </div>
       </div>
     </div>
