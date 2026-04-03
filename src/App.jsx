@@ -201,6 +201,38 @@ body{font-family:var(--f);background:var(--bg);color:var(--txt);-webkit-font-smo
 .dark .f-chip.on{border-color:#818cf8;background:rgba(129,140,248,.1);color:#a5b4fc}
 .search-count{font-size:11.5px;color:var(--t3);margin-bottom:14px}
 
+/* Activity Feed */
+.feed-item{display:flex;gap:12px;padding:16px;border-radius:var(--r);background:var(--card);border:1px solid var(--bl);margin-bottom:8px;transition:var(--tr)}
+.feed-item:hover{border-color:var(--border)}
+.feed-dot{width:10px;height:10px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.feed-content{flex:1}
+.feed-title{font-size:13.5px;font-weight:600;color:var(--txt);margin-bottom:2px}
+.feed-body{font-size:12.5px;color:var(--t2);line-height:1.5;margin-top:4px}
+.feed-meta{font-size:11px;color:var(--t3);display:flex;gap:10px;align-items:center}
+.feed-proj{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;cursor:pointer;transition:var(--tr)}
+.feed-proj:hover{filter:brightness(1.1)}
+.feed-type{font-size:10px;font-weight:500;padding:2px 7px;border-radius:100px;background:var(--hover);color:var(--t3)}
+
+/* Comments */
+.cmt-section{margin-top:10px;padding-top:10px;border-top:1px solid var(--bl)}
+.cmt-toggle{font-size:11.5px;color:var(--t3);cursor:pointer;display:flex;align-items:center;gap:5px;background:none;border:none;font-family:var(--f);transition:var(--tr);padding:0}
+.cmt-toggle:hover{color:var(--t2)}
+.cmt{display:flex;gap:8px;padding:8px 0}
+.cmt:last-child{padding-bottom:0}
+.cmt-av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:9px;color:#fff;flex-shrink:0}
+.cmt-body{flex:1}
+.cmt-author{font-size:11.5px;font-weight:600;color:var(--txt)}
+.cmt-time{font-size:10px;color:var(--t3);margin-left:6px;font-weight:400}
+.cmt-text{font-size:12.5px;color:var(--t2);line-height:1.5;margin-top:2px}
+.cmt-input{display:flex;gap:8px;margin-top:8px}
+.cmt-input input{flex:1;padding:7px 12px;border-radius:100px;border:1px solid var(--bl);background:var(--card);font-family:var(--f);font-size:12px;color:var(--txt);outline:none;transition:var(--tr)}
+.cmt-input input:focus{border-color:#6366f1;box-shadow:0 0 0 3px var(--focus-ring)}
+.dark .cmt-input input:focus{border-color:#818cf8}
+.cmt-input input::placeholder{color:var(--t3)}
+.cmt-send{padding:7px 14px;border-radius:100px;border:none;font-family:var(--f);font-size:11.5px;font-weight:600;color:#fff;cursor:pointer;transition:var(--tr)}
+.cmt-send:hover{filter:brightness(1.1)}
+.cmt-send:disabled{opacity:.35;cursor:not-allowed}
+
 /* ── Auth ── */
 .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f172a 0%,#1e293b 40%,#0f172a 70%,#1a1a2e 100%);padding:24px;position:relative;overflow:hidden}
 .auth-wrap::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 20%,rgba(99,102,241,.13) 0%,transparent 50%),radial-gradient(circle at 70% 80%,rgba(16,185,129,.1) 0%,transparent 50%);pointer-events:none}
@@ -630,6 +662,38 @@ function AddStakeholderModal({ onClose, onSave, pal }) {
   );
 }
 
+// ── Comment Thread ──
+function CommentThread({ comments = [], onAdd, accentColor = "#6366f1" }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const count = comments.length;
+  const avClrs = ["#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#f59e0b", "#10b981", "#06b6d4"];
+  return (
+    <div className="cmt-section">
+      <button className="cmt-toggle" onClick={() => setOpen(!open)}>
+        <I.msg size={12} /> {count > 0 ? `${count} comment${count !== 1 ? "s" : ""}` : "Add comment"} {open ? "▾" : "▸"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          {comments.map((c, i) => (
+            <div className="cmt" key={c.id}>
+              <div className="cmt-av" style={{ background: avClrs[i % avClrs.length] }}>{(c.author || "?")[0].toUpperCase()}</div>
+              <div className="cmt-body">
+                <span className="cmt-author">{c.author}<span className="cmt-time">{fmt(c.date)}</span></span>
+                <div className="cmt-text">{c.text}</div>
+              </div>
+            </div>
+          ))}
+          <div className="cmt-input">
+            <input value={text} onChange={e => setText(e.target.value)} placeholder="Write a comment..." onKeyDown={e => { if (e.key === "Enter" && text.trim()) { onAdd(text); setText(""); } }} />
+            <button className="cmt-send" style={{ background: accentColor }} disabled={!text.trim()} onClick={() => { if (text.trim()) { onAdd(text); setText(""); } }}>Send</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Dashboard({ project: proj, onBack, onUpdate, onDelete, dark, toggleDark, user, onLogout }) {
   const [tab, setTab] = useState("overview");
   const [modal, setModal] = useState(null);
@@ -646,6 +710,17 @@ function Dashboard({ project: proj, onBack, onUpdate, onDelete, dark, toggleDark
   const addS = (s) => { onUpdate({ ...proj, stakeholders: [...proj.stakeholders, s] }); setModal(null); };
   const togA = (id) => onUpdate({ ...proj, actions: proj.actions.map((a) => a.id === id ? { ...a, status: a.status === "done" ? "todo" : "done" } : a) });
   const delA = (id) => onUpdate({ ...proj, actions: proj.actions.filter((a) => a.id !== id) });
+
+  // Comments
+  const addComment = (type, itemId, text) => {
+    if (!text.trim()) return;
+    const comment = { id: uid(), author: user?.firstName || "You", text: text.trim(), date: new Date().toISOString().split("T")[0] };
+    if (type === "update") {
+      onUpdate({ ...proj, updates: proj.updates.map(u => u.id === itemId ? { ...u, comments: [...(u.comments || []), comment] } : u) });
+    } else if (type === "decision") {
+      onUpdate({ ...proj, decisions: proj.decisions.map(d => d.id === itemId ? { ...d, comments: [...(d.comments || []), comment] } : d) });
+    }
+  };
 
   // ── Health Score ──
   const totalU = proj.updates.length || 1;
@@ -811,6 +886,7 @@ function Dashboard({ project: proj, onBack, onUpdate, onDelete, dark, toggleDark
                   </div>
                   <div className="tl-m">{u.author} · {fmtFull(u.date)}</div>
                   {u.body && <div className="tl-body">{u.body}</div>}
+                  <CommentThread comments={u.comments} onAdd={(text) => addComment("update", u.id, text)} accentColor={pal.primary} />
                 </div>
               </div>
             ))}
@@ -825,6 +901,7 @@ function Dashboard({ project: proj, onBack, onUpdate, onDelete, dark, toggleDark
                 <div className="dec-m">{d.decidedBy} · {fmtFull(d.date)}</div>
                 <div className="dec-sec"><div className="dec-sl">Rationale</div><p>{d.rationale}</p></div>
                 {d.alternatives?.length > 0 && <div className="dec-sec"><div className="dec-sl">Alternatives</div><div className="dec-alts">{d.alternatives.map((a, j) => <span className="dec-alt" key={j}>{a}</span>)}</div></div>}
+                <CommentThread comments={d.comments} onAdd={(text) => addComment("decision", d.id, text)} accentColor={pal.primary} />
               </div>
             ))}
         </div>}
@@ -1342,6 +1419,7 @@ function ProjectList({ projects, onSelect, onNew, onHome, dark, toggleDark, user
             <div className="port-toggle">
               <button className={viewMode === "cards" ? "active" : ""} onClick={() => setViewMode("cards")}><I.layout size={12} /> Cards</button>
               <button className={viewMode === "report" ? "active" : ""} onClick={() => setViewMode("report")}><I.bar size={12} /> Report</button>
+              <button className={viewMode === "activity" ? "active" : ""} onClick={() => setViewMode("activity")}><I.clock size={12} /> Activity</button>
             </div>
             <button className="add" onClick={onNew}><I.plus size={13} /> New project</button>
           </div>
@@ -1509,6 +1587,46 @@ function ProjectList({ projects, onSelect, onNew, onHome, dark, toggleDark, user
                 {isFiltering && <button className="f-chip" onClick={clearFilters} style={{ marginTop: 8, borderColor: "var(--border)" }}><I.x size={10} /> Clear filters</button>}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Activity Feed */}
+        {viewMode === "activity" && (
+          <div>
+            {(() => {
+              // Collect all events across all active projects
+              const events = [];
+              activeProjects.forEach(p => {
+                const pl = PALETTES[p.palette] || PALETTES.indigo;
+                (p.updates || []).forEach(u => events.push({ ...u, projectName: p.name, projectId: p.id, projectColor: pl.primary, eventType: "update", sortDate: u.date }));
+                (p.decisions || []).forEach(d => events.push({ ...d, projectName: p.name, projectId: p.id, projectColor: pl.primary, eventType: "decision", sortDate: d.date }));
+                (p.actions || []).filter(a => a.status === "done").forEach(a => events.push({ ...a, projectName: p.name, projectId: p.id, projectColor: pl.primary, eventType: "action-done", sortDate: a.dueDate }));
+              });
+              events.sort((a, b) => new Date(b.sortDate) - new Date(a.sortDate));
+              const display = events.slice(0, 30);
+
+              if (display.length === 0) return (
+                <div className="empty" style={{ padding: 40 }}><I.clock size={28} color="var(--t3)" /><p>No activity yet across your projects</p></div>
+              );
+
+              return display.map((ev, i) => (
+                <div className="feed-item" key={`${ev.eventType}-${ev.id}-${i}`}>
+                  <div className="feed-dot" style={{ background: ev.eventType === "decision" ? "#8b5cf6" : ev.eventType === "action-done" ? "#059669" : STATUS_COLORS[ev.status] || "var(--t3)" }} />
+                  <div className="feed-content">
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span className="feed-title">{ev.title}</span>
+                      <span className="feed-type">{ev.eventType === "decision" ? "Decision" : ev.eventType === "action-done" ? "Completed" : ev.type || "Update"}</span>
+                    </div>
+                    <div className="feed-meta">
+                      <span className="feed-proj" style={{ background: `${ev.projectColor}14`, color: ev.projectColor }} onClick={() => onSelect(ev.projectId)}>{ev.projectName}</span>
+                      <span>{ev.author || ev.decidedBy || ev.owner}</span>
+                      <span>{fmtFull(ev.sortDate)}</span>
+                    </div>
+                    {(ev.body || ev.rationale) && <div className="feed-body">{(ev.body || ev.rationale || "").slice(0, 150)}{(ev.body || ev.rationale || "").length > 150 ? "..." : ""}</div>}
+                  </div>
+                </div>
+              ));
+            })()}
           </div>
         )}
 
