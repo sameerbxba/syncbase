@@ -81,18 +81,31 @@ const SAMPLE = {
   ],
 };
 
-// Robust storage helpers that handle missing keys gracefully
+// Robust storage — always uses localStorage, also syncs to window.storage (Claude artifacts) when available
 const storageGet = async (key) => {
+  // Try localStorage first (works everywhere)
   try {
-    if (window.storage) {
+    const v = localStorage.getItem(key);
+    if (v !== null) return v;
+  } catch {}
+  // Fallback to window.storage (Claude artifact environment)
+  try {
+    if (window.storage && typeof window.storage.get === "function") {
       const r = await window.storage.get(key);
-      return r ? r.value : null;
+      if (r && r.value) { try { localStorage.setItem(key, r.value); } catch {} return r.value; }
     }
-    return null;
-  } catch { return null; }
+  } catch {}
+  return null;
 };
 const storageSet = async (key, val) => {
-  try { if (window.storage) await window.storage.set(key, val); } catch {}
+  // Always write to localStorage
+  try { localStorage.setItem(key, val); } catch {}
+  // Also write to window.storage if available
+  try {
+    if (window.storage && typeof window.storage.set === "function") {
+      await window.storage.set(key, val);
+    }
+  } catch {}
 };
 
 const SK = "syncbase-v2";
