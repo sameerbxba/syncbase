@@ -81,18 +81,41 @@ const SAMPLE = {
   ],
 };
 
+// Robust storage helpers that handle missing keys gracefully
+const storageGet = async (key) => {
+  try {
+    if (window.storage) {
+      const r = await window.storage.get(key);
+      return r ? r.value : null;
+    }
+    return null;
+  } catch { return null; }
+};
+const storageSet = async (key, val) => {
+  try { if (window.storage) await window.storage.set(key, val); } catch {}
+};
+
 const SK = "syncbase-v2";
-const load = async () => { try { const r = await window.storage.get(SK); return r ? JSON.parse(r.value) : null; } catch { return null; } };
-const save = async (d) => { try { await window.storage.set(SK, JSON.stringify(d)); } catch {} };
+const load = async () => { const v = await storageGet(SK); return v ? JSON.parse(v) : null; };
+const save = async (d) => { await storageSet(SK, JSON.stringify(d)); };
 
 // ── Auth storage ──
 const AUTH_KEY = "syncbase-auth";
 const USERS_KEY = "syncbase-users";
-const loadAuth = async () => { try { const r = await window.storage.get(AUTH_KEY); return r ? JSON.parse(r.value) : null; } catch { return null; } };
-const saveAuth = async (d) => { try { await window.storage.set(AUTH_KEY, JSON.stringify(d)); } catch {} };
-const loadUsers = async () => { try { const r = await window.storage.get(USERS_KEY); return r ? JSON.parse(r.value) : []; } catch { return []; } };
-const saveUsers = async (d) => { try { await window.storage.set(USERS_KEY, JSON.stringify(d)); } catch {} };
+
+const loadAuth = async () => { const v = await storageGet(AUTH_KEY); return v ? JSON.parse(v) : null; };
+const saveAuth = async (d) => { await storageSet(AUTH_KEY, JSON.stringify(d)); };
+const loadUsers = async () => { const v = await storageGet(USERS_KEY); return v ? JSON.parse(v) : []; };
+const saveUsers = async (d) => { await storageSet(USERS_KEY, JSON.stringify(d)); };
 const hashPw = (pw) => { let h = 0; for (let i = 0; i < pw.length; i++) { h = ((h << 5) - h + pw.charCodeAt(i)) | 0; } return "h" + Math.abs(h).toString(36); };
+
+const validatePassword = (pw) => {
+  if (pw.length < 8) return "Password must be at least 8 characters.";
+  if (!/[A-Z]/.test(pw)) return "Password must include an uppercase letter.";
+  if (!/[a-z]/.test(pw)) return "Password must include a lowercase letter.";
+  if (!/[0-9]/.test(pw)) return "Password must include a number.";
+  return null;
+};
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;700&display=swap');
@@ -1529,11 +1552,23 @@ function AuthPage({ onAuth }) {
   const [loading, setLoading] = useState(false);
 
   const validate = () => {
-    if (!email.trim() || !email.includes("@")) return "Please enter a valid email address.";
-    if (password.length < 6) return "Password must be at least 6 characters.";
-    if (mode === "signup" && !firstName.trim()) return "First name is required.";
+    if (!email.trim() || !email.includes("@") || !email.includes(".")) return "Please enter a valid email address.";
+    if (mode === "signup") {
+      if (!firstName.trim()) return "First name is required.";
+      const pwErr = validatePassword(password);
+      if (pwErr) return pwErr;
+    } else {
+      if (!password) return "Please enter your password.";
+    }
     return null;
   };
+
+  const pwChecks = [
+    { label: "8+ characters", pass: password.length >= 8 },
+    { label: "Uppercase letter", pass: /[A-Z]/.test(password) },
+    { label: "Lowercase letter", pass: /[a-z]/.test(password) },
+    { label: "Number", pass: /[0-9]/.test(password) },
+  ];
 
   const handleSubmit = async () => {
     const err = validate();
@@ -1541,11 +1576,12 @@ function AuthPage({ onAuth }) {
     setError(""); setLoading(true);
 
     try {
-      const users = await loadUsers();
+      let users = await loadUsers();
+      if (!Array.isArray(users)) users = [];
 
       if (mode === "signup") {
         if (users.find(u => u.email === email.trim().toLowerCase())) {
-          setError("An account with this email already exists."); setLoading(false); return;
+          setError("An account with this email already exists. Try signing in."); setLoading(false); return;
         }
         const user = {
           id: uid(),
@@ -1557,19 +1593,24 @@ function AuthPage({ onAuth }) {
           avatar: (firstName[0] + (lastName[0] || "")).toUpperCase(),
           createdAt: new Date().toISOString(),
         };
-        await saveUsers([...users, user]);
+        const newUsers = [...users, user];
+        await saveUsers(newUsers);
         await saveAuth({ userId: user.id, loggedIn: true });
+        setLoading(false);
         onAuth(user);
       } else {
-        const user = users.find(u => u.email === email.trim().toLowerCase() && u.pwHash === hashPw(password));
-        if (!user) { setError("Invalid email or password."); setLoading(false); return; }
+        const inputHash = hashPw(password);
+        const user = users.find(u => u.email === email.trim().toLowerCase());
+        if (!user) { setError("No account found with this email. Try signing up."); setLoading(false); return; }
+        if (user.pwHash !== inputHash) { setError("Incorrect password. Please try again."); setLoading(false); return; }
         await saveAuth({ userId: user.id, loggedIn: true });
+        setLoading(false);
         onAuth(user);
       }
     } catch (e) {
       setError("Something went wrong. Please try again.");
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const switchMode = () => { setMode(mode === "login" ? "signup" : "login"); setError(""); };
@@ -1584,12 +1625,12 @@ function AuthPage({ onAuth }) {
         </div>
 
         {mode === "signup" && (
-          <div className="auth-avatar" style={{ background: firstName ? `linear-gradient(135deg, #6366f1, #8b5cf6)` : "rgba(255,255,255,.08)" }}>
+          <div className="auth-avatar" style={{ background: firstName ? "linear-gradient(135deg, #6366f1, #8b5cf6)" : "rgba(255,255,255,.08)" }}>
             {firstName ? (firstName[0] + (lastName[0] || "")).toUpperCase() : "?"}
           </div>
         )}
 
-        <h2>{mode === "login" ? "Welcome back" : "Create your account"}</h2>
+        <h2>{mode === "login" ? "Welcome" : "Create your account"}</h2>
         <p className="auth-sub">{mode === "login" ? "Sign in to access your projects" : "Get started with SyncBase in seconds"}</p>
 
         {error && <div className="auth-err">{error}</div>}
@@ -1619,7 +1660,14 @@ function AuthPage({ onAuth }) {
         </div>
         <div className="auth-fld">
           <label>Password *</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={mode === "signup" ? "At least 6 characters" : "Enter your password"} onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={mode === "signup" ? "Create a strong password" : "Enter your password"} onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+          {mode === "signup" && password.length > 0 && (
+            <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+              {pwChecks.map((c, i) => (
+                <span key={i} style={{ fontSize: 10.5, padding: "2px 8px", borderRadius: 100, background: c.pass ? "rgba(16,185,129,.15)" : "rgba(255,255,255,.06)", color: c.pass ? "#34d399" : "rgba(255,255,255,.3)", fontWeight: 500, transition: "all .2s" }}>{c.pass ? "✓" : "○"} {c.label}</span>
+              ))}
+            </div>
+          )}
         </div>
 
         <button className="auth-btn auth-btn-primary" onClick={handleSubmit} disabled={loading}>
