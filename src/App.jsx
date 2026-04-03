@@ -242,8 +242,10 @@ body{font-family:var(--f);background:var(--bg);color:var(--txt);-webkit-font-smo
 .raci-table tr:last-child td{border-bottom:none}
 .raci-table tr:hover td{background:var(--hover)}
 .raci-cell{text-align:center}
-.raci-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--bl);background:var(--card);cursor:pointer;font-family:var(--f);font-size:12px;font-weight:700;color:var(--t3);transition:var(--tr);display:inline-flex;align-items:center;justify-content:center}
+.raci-btn{min-width:44px;height:32px;border-radius:8px;border:1px solid var(--bl);background:var(--card);cursor:pointer;font-family:var(--f);font-size:11px;font-weight:700;color:var(--t3);transition:var(--tr);padding:0 6px;outline:none}
 .raci-btn:hover{border-color:var(--border);background:var(--hover)}
+.raci-btn:focus{border-color:#6366f1;box-shadow:0 0 0 3px var(--focus-ring)}
+.dark .raci-btn:focus{border-color:#818cf8}
 .raci-btn.R{background:rgba(99,102,241,.12);color:#6366f1;border-color:rgba(99,102,241,.25)}
 .raci-btn.A{background:rgba(220,38,38,.1);color:#dc2626;border-color:rgba(220,38,38,.2)}
 .raci-btn.C{background:rgba(217,119,6,.1);color:#d97706;border-color:rgba(217,119,6,.2)}
@@ -999,11 +1001,8 @@ function RaciTab({ proj, pal, onUpdate }) {
   const avClr = ["#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#f59e0b", "#10b981", "#06b6d4"];
 
   const getVal = (wsId, shId) => (assignments[`${wsId}-${shId}`] || "");
-  const cycleVal = (wsId, shId) => {
-    const cur = getVal(wsId, shId);
-    const idx = RACI_VALS.indexOf(cur);
-    const next = RACI_VALS[(idx + 1) % RACI_VALS.length];
-    const newA = { ...assignments, [`${wsId}-${shId}`]: next };
+  const setVal = (wsId, shId, val) => {
+    const newA = { ...assignments, [`${wsId}-${shId}`]: val };
     setAssignments(newA);
     setHasChanges(true);
   };
@@ -1101,9 +1100,18 @@ function RaciTab({ proj, pal, onUpdate }) {
                       const val = getVal(ws.id, s.id);
                       return (
                         <td className="raci-cell" key={s.id}>
-                          <button className={`raci-btn ${val}`} onClick={() => cycleVal(ws.id, s.id)} title={val ? RACI_LABELS[val] : "Click to assign"}>
-                            {val || "–"}
-                          </button>
+                          <select
+                            className={`raci-btn ${val}`}
+                            value={val}
+                            onChange={e => setVal(ws.id, s.id, e.target.value)}
+                            style={{ cursor: "pointer", appearance: "none", WebkitAppearance: "none", textAlign: "center", textAlignLast: "center" }}
+                          >
+                            <option value="">–  Not involved</option>
+                            <option value="R">R  Responsible</option>
+                            <option value="A">A  Accountable</option>
+                            <option value="C">C  Consulted</option>
+                            <option value="I">I  Informed</option>
+                          </select>
                         </td>
                       );
                     })}
