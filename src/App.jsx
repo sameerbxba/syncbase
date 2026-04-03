@@ -233,6 +233,30 @@ body{font-family:var(--f);background:var(--bg);color:var(--txt);-webkit-font-smo
 .cmt-send:hover{filter:brightness(1.1)}
 .cmt-send:disabled{opacity:.35;cursor:not-allowed}
 
+/* RACI Matrix */
+.raci-wrap{overflow-x:auto}
+.raci-table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--bl);border-radius:var(--r);overflow:hidden;min-width:600px}
+.raci-table th{padding:10px 12px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);background:var(--hover);border-bottom:1px solid var(--bl);text-align:left}
+.raci-table th.raci-col{text-align:center;min-width:80px}
+.raci-table td{padding:10px 12px;font-size:13px;color:var(--txt);border-bottom:1px solid var(--bl);background:var(--card)}
+.raci-table tr:last-child td{border-bottom:none}
+.raci-table tr:hover td{background:var(--hover)}
+.raci-cell{text-align:center}
+.raci-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--bl);background:var(--card);cursor:pointer;font-family:var(--f);font-size:12px;font-weight:700;color:var(--t3);transition:var(--tr);display:inline-flex;align-items:center;justify-content:center}
+.raci-btn:hover{border-color:var(--border);background:var(--hover)}
+.raci-btn.R{background:rgba(99,102,241,.12);color:#6366f1;border-color:rgba(99,102,241,.25)}
+.raci-btn.A{background:rgba(220,38,38,.1);color:#dc2626;border-color:rgba(220,38,38,.2)}
+.raci-btn.C{background:rgba(217,119,6,.1);color:#d97706;border-color:rgba(217,119,6,.2)}
+.raci-btn.I{background:rgba(5,150,105,.1);color:#059669;border-color:rgba(5,150,105,.2)}
+.raci-legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.raci-legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t2)}
+.raci-legend-dot{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.raci-add-row{display:flex;gap:8px;margin-top:12px}
+.raci-add-input{flex:1;padding:8px 14px;border-radius:var(--rx);border:1px solid var(--bl);background:var(--card);font-family:var(--f);font-size:13px;color:var(--txt);outline:none;transition:var(--tr)}
+.raci-add-input:focus{border-color:#6366f1;box-shadow:0 0 0 3px var(--focus-ring)}
+.dark .raci-add-input:focus{border-color:#818cf8}
+.raci-add-input::placeholder{color:var(--t3)}
+
 /* ── Auth ── */
 .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f172a 0%,#1e293b 40%,#0f172a 70%,#1a1a2e 100%);padding:24px;position:relative;overflow:hidden}
 .auth-wrap::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 20%,rgba(99,102,241,.13) 0%,transparent 50%),radial-gradient(circle at 70% 80%,rgba(16,185,129,.1) 0%,transparent 50%);pointer-events:none}
@@ -751,7 +775,7 @@ function Dashboard({ project: proj, onBack, onUpdate, onDelete, dark, toggleDark
   const [showDigest, setShowDigest] = useState(false);
   const [digestText, setDigestText] = useState("");
 
-  const TABS = [{ k: "overview", l: "Overview", i: <I.bar size={13} /> }, { k: "timeline", l: "Timeline", i: <I.clock size={13} /> }, { k: "decisions", l: "Decisions", i: <I.file size={13} /> }, { k: "actions", l: "Actions", i: <I.target size={13} /> }, { k: "stakeholders", l: "Stakeholders", i: <I.users size={13} /> }, { k: "settings", l: "Settings", i: <I.gear size={13} /> }];
+  const TABS = [{ k: "overview", l: "Overview", i: <I.bar size={13} /> }, { k: "timeline", l: "Timeline", i: <I.clock size={13} /> }, { k: "decisions", l: "Decisions", i: <I.file size={13} /> }, { k: "actions", l: "Actions", i: <I.target size={13} /> }, { k: "stakeholders", l: "Stakeholders", i: <I.users size={13} /> }, { k: "raci", l: "RACI", i: <I.shield size={13} /> }, { k: "settings", l: "Settings", i: <I.gear size={13} /> }];
   const avClr = ["#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#f59e0b", "#10b981", "#06b6d4"];
 
   return (
@@ -945,12 +969,187 @@ function Dashboard({ project: proj, onBack, onUpdate, onDelete, dark, toggleDark
             })}
         </div>}
 
+        {tab === "raci" && <RaciTab proj={proj} pal={pal} onUpdate={onUpdate} />}
+
         {tab === "settings" && <SettingsTab proj={proj} pal={pal} onUpdate={onUpdate} onDelete={onDelete} onBack={onBack} />}
       </div>
       {modal === "update" && <AddUpdateModal pal={proj.palette} onClose={() => setModal(null)} onSave={addU} />}
       {modal === "decision" && <AddDecisionModal pal={proj.palette} onClose={() => setModal(null)} onSave={addD} />}
       {modal === "action" && <AddActionModal pal={proj.palette} onClose={() => setModal(null)} onSave={addA} />}
       {modal === "stakeholder" && <AddStakeholderModal pal={proj.palette} onClose={() => setModal(null)} onSave={addS} />}
+    </div>
+  );
+}
+
+// ── RACI Matrix ──
+function RaciTab({ proj, pal, onUpdate }) {
+  const [workstreams, setWorkstreams] = useState(proj.raci?.workstreams || [
+    { id: uid(), name: "Product Strategy" },
+    { id: uid(), name: "Technical Architecture" },
+    { id: uid(), name: "User Research" },
+    { id: uid(), name: "Launch & GTM" },
+  ]);
+  const [assignments, setAssignments] = useState(proj.raci?.assignments || {});
+  const [newWs, setNewWs] = useState("");
+  const [hasChanges, setHasChanges] = useState(false);
+
+  const RACI_VALS = ["", "R", "A", "C", "I"];
+  const RACI_LABELS = { R: "Responsible", A: "Accountable", C: "Consulted", I: "Informed" };
+  const RACI_COLORS = { R: "#6366f1", A: "#dc2626", C: "#d97706", I: "#059669" };
+  const avClr = ["#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#f59e0b", "#10b981", "#06b6d4"];
+
+  const getVal = (wsId, shId) => (assignments[`${wsId}-${shId}`] || "");
+  const cycleVal = (wsId, shId) => {
+    const cur = getVal(wsId, shId);
+    const idx = RACI_VALS.indexOf(cur);
+    const next = RACI_VALS[(idx + 1) % RACI_VALS.length];
+    const newA = { ...assignments, [`${wsId}-${shId}`]: next };
+    setAssignments(newA);
+    setHasChanges(true);
+  };
+
+  const addWorkstream = () => {
+    if (!newWs.trim()) return;
+    setWorkstreams([...workstreams, { id: uid(), name: newWs.trim() }]);
+    setNewWs("");
+    setHasChanges(true);
+  };
+
+  const removeWorkstream = (id) => {
+    setWorkstreams(workstreams.filter(w => w.id !== id));
+    const newA = { ...assignments };
+    Object.keys(newA).forEach(k => { if (k.startsWith(id + "-")) delete newA[k]; });
+    setAssignments(newA);
+    setHasChanges(true);
+  };
+
+  const saveRaci = () => {
+    onUpdate({ ...proj, raci: { workstreams, assignments } });
+    setHasChanges(false);
+  };
+
+  // Validation: check for workstreams missing an Accountable person
+  const warnings = workstreams.filter(ws => {
+    const hasA = proj.stakeholders.some(s => getVal(ws.id, s.id) === "A");
+    return !hasA;
+  });
+
+  return (
+    <div style={{ maxWidth: 900 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+        <div>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--txt)", marginBottom: 4 }}>RACI Matrix</h3>
+          <p style={{ fontSize: 13, color: "var(--t2)", lineHeight: 1.5 }}>
+            Define who is Responsible, Accountable, Consulted, and Informed for each workstream. Click a cell to cycle through roles.
+          </p>
+        </div>
+        {hasChanges && (
+          <button className="set-save" style={{ background: pal.grad }} onClick={saveRaci}>Save RACI</button>
+        )}
+      </div>
+
+      {/* Legend */}
+      <div className="raci-legend">
+        {Object.entries(RACI_LABELS).map(([k, v]) => (
+          <div className="raci-legend-item" key={k}>
+            <div className="raci-legend-dot" style={{ background: `${RACI_COLORS[k]}15`, color: RACI_COLORS[k] }}>{k}</div>
+            <span>{v}</span>
+          </div>
+        ))}
+        <div className="raci-legend-item">
+          <div className="raci-legend-dot" style={{ background: "var(--hover)", color: "var(--t3)" }}>–</div>
+          <span>Not involved</span>
+        </div>
+      </div>
+
+      {/* Warnings */}
+      {warnings.length > 0 && (
+        <div style={{ padding: "10px 14px", borderRadius: "var(--rs)", background: "rgba(217,119,6,.08)", border: "1px solid rgba(217,119,6,.15)", marginBottom: 14, fontSize: 12.5, color: "#d97706", display: "flex", alignItems: "center", gap: 8 }}>
+          <I.alert size={14} color="#d97706" />
+          {warnings.length} workstream{warnings.length !== 1 ? "s" : ""} missing an Accountable (A) person: {warnings.map(w => w.name).join(", ")}
+        </div>
+      )}
+
+      {proj.stakeholders.length === 0 ? (
+        <div className="empty" style={{ padding: 40 }}>
+          <I.users size={28} color="var(--t3)" />
+          <p>Add stakeholders first to build your RACI matrix.</p>
+        </div>
+      ) : (
+        <>
+          <div className="raci-wrap">
+            <table className="raci-table">
+              <thead>
+                <tr>
+                  <th style={{ minWidth: 180 }}>Workstream</th>
+                  {proj.stakeholders.map((s, i) => (
+                    <th className="raci-col" key={s.id}>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: avClr[i % avClr.length], color: "#fff", fontSize: 10, fontWeight: 600 }}>{s.avatar}</div>
+                        <span style={{ fontSize: 10, maxWidth: 70, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.name.split(" ")[0]}</span>
+                      </div>
+                    </th>
+                  ))}
+                  <th style={{ width: 40 }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {workstreams.map((ws) => (
+                  <tr key={ws.id}>
+                    <td style={{ fontWeight: 500 }}>{ws.name}</td>
+                    {proj.stakeholders.map((s) => {
+                      const val = getVal(ws.id, s.id);
+                      return (
+                        <td className="raci-cell" key={s.id}>
+                          <button className={`raci-btn ${val}`} onClick={() => cycleVal(ws.id, s.id)} title={val ? RACI_LABELS[val] : "Click to assign"}>
+                            {val || "–"}
+                          </button>
+                        </td>
+                      );
+                    })}
+                    <td>
+                      <button style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", padding: 4 }} onClick={() => removeWorkstream(ws.id)} title="Remove workstream"><I.x size={13} /></button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Add workstream */}
+          <div className="raci-add-row">
+            <input className="raci-add-input" value={newWs} onChange={e => setNewWs(e.target.value)} placeholder="Add workstream (e.g. Data Pipeline, Security Review, Vendor Selection)" onKeyDown={e => e.key === "Enter" && addWorkstream()} />
+            <button className="set-save" style={{ background: pal.grad }} onClick={addWorkstream} disabled={!newWs.trim()}>Add</button>
+          </div>
+
+          {/* Summary */}
+          <div style={{ marginTop: 24, padding: 18, background: "var(--card)", border: "1px solid var(--bl)", borderRadius: "var(--r)" }}>
+            <div style={{ fontWeight: 600, fontSize: 14, color: "var(--txt)", marginBottom: 12 }}>Role Summary</div>
+            {proj.stakeholders.map((s, i) => {
+              const roles = workstreams.map(ws => ({ ws: ws.name, role: getVal(ws.id, s.id) })).filter(r => r.role);
+              return (
+                <div key={s.id} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 0", borderBottom: "1px solid var(--bl)" }}>
+                  <div style={{ width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: avClr[i % avClr.length], color: "#fff", fontSize: 10, fontWeight: 600, flexShrink: 0 }}>{s.avatar}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--txt)" }}>{s.name} <span style={{ fontWeight: 400, color: "var(--t3)", fontSize: 11 }}>· {s.role}</span></div>
+                    {roles.length === 0 ? (
+                      <div style={{ fontSize: 11.5, color: "var(--t3)", marginTop: 2 }}>No assignments yet</div>
+                    ) : (
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 4 }}>
+                        {roles.map((r, j) => (
+                          <span key={j} style={{ fontSize: 10.5, padding: "2px 8px", borderRadius: 100, background: `${RACI_COLORS[r.role]}12`, color: RACI_COLORS[r.role], fontWeight: 500 }}>
+                            {r.role} — {r.ws}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }
