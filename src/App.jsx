@@ -1270,6 +1270,25 @@ function RaciTab({ proj, pal, onUpdate }) {
   );
 }
 
+// ── Settings Helpers (defined outside to prevent remount) ──
+const SectionBox = ({ icon, iconBg, iconColor, title, badge, danger, children }) => (
+  <div className={`set-sec ${danger ? "set-danger" : ""}`}>
+    <div className="set-sec-h">
+      <div className="set-ico" style={{ background: iconBg, color: iconColor }}>{icon}</div>
+      <h3 style={danger ? { color: "#dc2626" } : undefined}>{title}</h3>
+      {badge && <span className="set-badge" style={{ marginLeft: "auto" }}>{badge}</span>}
+    </div>
+    <div className="set-sec-b">{children}</div>
+  </div>
+);
+
+const Row = ({ title, desc, children }) => (
+  <div className="set-row">
+    <div className="set-row-l"><h4>{title}</h4>{desc && <p>{desc}</p>}</div>
+    <div className="set-row-r">{children}</div>
+  </div>
+);
+
 function SettingsTab({ proj, pal: palProp, onUpdate, onDelete, onBack }) {
   const [name, setName] = useState(proj.name);
   const [desc, setDesc] = useState(proj.description);
@@ -1376,24 +1395,6 @@ function SettingsTab({ proj, pal: palProp, onUpdate, onDelete, onBack }) {
     navigator.clipboard?.writeText(JSON.stringify(template, null, 2));
     setSaved(true); setTimeout(() => setSaved(false), 2000);
   };
-
-  const SectionBox = ({ icon, iconBg, iconColor, title, badge, danger, children }) => (
-    <div className={`set-sec ${danger ? "set-danger" : ""}`}>
-      <div className="set-sec-h">
-        <div className="set-ico" style={{ background: iconBg, color: iconColor }}>{icon}</div>
-        <h3 style={danger ? { color: "#dc2626" } : undefined}>{title}</h3>
-        {badge && <span className="set-badge" style={{ marginLeft: "auto" }}>{badge}</span>}
-      </div>
-      <div className="set-sec-b">{children}</div>
-    </div>
-  );
-
-  const Row = ({ title, desc, children }) => (
-    <div className="set-row">
-      <div className="set-row-l"><h4>{title}</h4>{desc && <p>{desc}</p>}</div>
-      <div className="set-row-r">{children}</div>
-    </div>
-  );
 
   const phaseStatusColors = { pending: "var(--t3)", active: "#d97706", completed: "#059669" };
   const permColors = { contributor: "#6366f1", viewer: "#059669", admin: "#dc2626" };
