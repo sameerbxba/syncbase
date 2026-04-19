@@ -343,6 +343,28 @@ body{font-family:var(--f);background:var(--bg);color:var(--txt);-webkit-font-smo
 
 /* RACI Matrix */
 .raci-wrap{overflow-x:auto}
+
+/* Import */
+.imp-tabs{display:flex;gap:2px;padding:3px;border-radius:100px;background:var(--hover);border:1px solid var(--bl);margin-bottom:20px}
+.imp-tab{flex:1;padding:8px 12px;border-radius:100px;border:none;font-family:var(--f);font-size:12.5px;font-weight:500;color:var(--t3);cursor:pointer;transition:var(--tr);background:transparent;text-align:center}
+.imp-tab.on{background:var(--card);color:var(--txt);box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.dark .imp-tab.on{box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.imp-drop{border:2px dashed var(--border);border-radius:var(--r);padding:32px;text-align:center;cursor:pointer;transition:var(--tr)}
+.imp-drop:hover{border-color:var(--t3);background:var(--hover)}
+.imp-preview{padding:16px;border-radius:var(--rs);background:var(--hover);border:1px solid var(--bl);margin-top:14px}
+.imp-preview h4{font-size:14px;font-weight:600;color:var(--txt);margin-bottom:8px}
+.imp-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12.5px}
+.imp-row .imp-label{color:var(--t3)}
+.imp-row .imp-val{color:var(--txt);font-weight:500}
+.imp-source{display:flex;gap:10px;margin-bottom:16px}
+.imp-source-btn{flex:1;padding:14px;border-radius:var(--r);border:1px solid var(--bl);background:var(--card);cursor:pointer;transition:var(--tr);text-align:center;font-family:var(--f)}
+.imp-source-btn:hover{border-color:var(--border);background:var(--hover)}
+.imp-source-btn.on{border-color:#6366f1;background:rgba(99,102,241,.06)}
+.dark .imp-source-btn.on{border-color:#818cf8;background:rgba(129,140,248,.08)}
+.imp-source-btn h4{font-size:13px;font-weight:600;color:var(--txt);margin-bottom:2px}
+.imp-source-btn p{font-size:11px;color:var(--t3)}
+
+/* RACI Matrix continued */
 .raci-table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--bl);border-radius:var(--r);overflow:hidden;min-width:600px}
 .raci-table th{padding:10px 12px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);background:var(--hover);border-bottom:1px solid var(--bl);text-align:left}
 .raci-table th.raci-col{text-align:center;min-width:80px}
@@ -717,6 +739,183 @@ function NewProjectModal({ onClose, onSave }) {
       <div className="fld"><label>Color theme</label>
         <div className="pal-pk">{Object.entries(PALETTES).map(([k, v]) => <div key={k} className={`pal-d ${f.palette === k ? "sel" : ""}`} style={{ background: v.grad }} onClick={() => s("palette", k)} />)}</div>
       </div>
+    </Modal>
+  );
+}
+
+function ImportProjectModal({ onClose, onImport }) {
+  const [source, setSource] = useState("jira"); // jira | ado | csv | json
+  const [importData, setImportData] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [url, setUrl] = useState("");
+  const [palette, setPalette] = useState("indigo");
+  const [error, setError] = useState("");
+  const fileRef = useRef(null);
+
+  const parseJiraUrl = (u) => {
+    const match = u.match(/atlassian\.net\/.*?\/projects?\/([A-Z0-9-]+)/i) || u.match(/atlassian\.net\/.*?board\/(\d+)/i);
+    const projectKey = match ? match[1] : u.split("/").filter(Boolean).pop() || "Imported Project";
+    return { name: `${projectKey} (from Jira)`, description: `Imported from Jira: ${u}`, source: "jira", sourceUrl: u, totalWeeks: 12 };
+  };
+
+  const parseAdoUrl = (u) => {
+    const parts = u.split("/").filter(Boolean);
+    const orgIdx = parts.findIndex(p => p === "dev.azure.com" || p.includes("visualstudio.com"));
+    const projectName = parts[orgIdx + 2] || parts.pop() || "Imported Project";
+    return { name: `${decodeURIComponent(projectName)} (from ADO)`, description: `Imported from Azure DevOps: ${u}`, source: "ado", sourceUrl: u, totalWeeks: 12 };
+  };
+
+  const handleUrlImport = () => {
+    if (!url.trim()) { setError("Please enter a project URL."); return; }
+    setError("");
+    let data;
+    if (url.includes("atlassian") || url.includes("jira") || source === "jira") {
+      data = parseJiraUrl(url);
+    } else if (url.includes("azure") || url.includes("visualstudio") || source === "ado") {
+      data = parseAdoUrl(url);
+    } else {
+      data = { name: "Imported Project", description: `Imported from: ${url}`, source: "url", sourceUrl: url, totalWeeks: 12 };
+    }
+    setPreview(data);
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError("");
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const text = ev.target.result;
+        if (file.name.endsWith(".json")) {
+          const json = JSON.parse(text);
+          // Support SyncBase JSON export format
+          if (json.name && json.updates) {
+            setPreview({ ...json, source: "syncbase-json", totalWeeks: json.totalWeeks || 12 });
+            setImportData(json);
+            return;
+          }
+          // Support Jira JSON export
+          const name = json.name || json.key || json.projectName || json.fields?.summary || "Imported Project";
+          const desc = json.description || json.fields?.description || "";
+          const members = [];
+          if (json.lead) members.push({ name: json.lead.displayName || json.lead, role: "Project Lead" });
+          if (json.members) json.members.forEach(m => members.push({ name: m.displayName || m.name || m, role: m.role || "Team Member" }));
+          if (json.assignees) json.assignees.forEach(a => members.push({ name: a, role: "Contributor" }));
+          setPreview({ name, description: desc, source: "json", members, totalWeeks: 12 });
+        } else if (file.name.endsWith(".csv")) {
+          const lines = text.split("\n").filter(l => l.trim());
+          const headers = lines[0]?.split(",").map(h => h.trim().replace(/"/g, "").toLowerCase()) || [];
+          const rows = lines.slice(1);
+          const nameIdx = headers.findIndex(h => h.includes("project") || h.includes("name") || h.includes("summary"));
+          const ownerIdx = headers.findIndex(h => h.includes("owner") || h.includes("assignee") || h.includes("lead"));
+          const statusIdx = headers.findIndex(h => h.includes("status") || h.includes("state"));
+
+          const projectName = nameIdx >= 0 && rows[0] ? rows[0].split(",")[nameIdx]?.replace(/"/g, "").trim() : file.name.replace(".csv", "");
+          const members = [];
+          if (ownerIdx >= 0) {
+            const owners = [...new Set(rows.map(r => r.split(",")[ownerIdx]?.replace(/"/g, "").trim()).filter(Boolean))];
+            owners.forEach(o => members.push({ name: o, role: "Team Member" }));
+          }
+          setPreview({ name: projectName, description: `Imported from ${file.name} (${rows.length} items)`, source: "csv", members, totalWeeks: 12, itemCount: rows.length });
+        } else {
+          setError("Unsupported file format. Use .json or .csv");
+        }
+      } catch (err) {
+        setError("Could not parse file. Please check the format.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImport = () => {
+    if (!preview) return;
+    // If it's a full SyncBase JSON backup, import directly
+    if (importData && importData.updates) {
+      onImport({ ...importData, id: uid(), palette, archived: false });
+      return;
+    }
+    // Otherwise build a new project from parsed data
+    const stakeholders = (preview.members || []).map(m => ({
+      id: uid(), name: m.name, role: m.role || "Team Member", team: "Imported",
+      avatar: m.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2),
+      syncStatus: "needs-update", lastActive: new Date().toISOString().split("T")[0],
+      permission: "viewer", notifyPref: "weekly"
+    }));
+    onImport({
+      id: uid(), name: preview.name, description: preview.description, palette,
+      status: "not-started", startDate: new Date().toISOString().split("T")[0],
+      endDate: daysFromNow(preview.totalWeeks * 7), currentWeek: 1, totalWeeks: preview.totalWeeks,
+      stakeholders, updates: [], decisions: [], actions: [], tags: [preview.source === "jira" ? "Jira Import" : preview.source === "ado" ? "ADO Import" : "Imported"],
+      archived: false, sprintConfig: { type: "sprint", length: 2, currentSprint: 1, phases: [] },
+      okrs: [], integrations: { slack: "", jira: preview.sourceUrl || "", gcal: false },
+      raci: { workstreams: [], assignments: {} }
+    });
+  };
+
+  return (
+    <Modal title="Import Project" onClose={onClose} footer={<>
+      <button className="btn-gh" onClick={onClose}>Cancel</button>
+      <button className="btn-sub" style={{ background: PALETTES[palette].primary }} disabled={!preview} onClick={handleImport}>Import project</button>
+    </>}>
+      {/* Source selector */}
+      <div className="imp-source">
+        {[
+          { k: "jira", h: "Jira", p: "Paste project URL" },
+          { k: "ado", h: "Azure DevOps", p: "Paste project URL" },
+          { k: "file", h: "File Import", p: "CSV or JSON export" },
+        ].map(s => (
+          <button key={s.k} className={`imp-source-btn ${source === s.k ? "on" : ""}`} onClick={() => { setSource(s.k); setPreview(null); setError(""); }}>
+            <h4>{s.h}</h4><p>{s.p}</p>
+          </button>
+        ))}
+      </div>
+
+      {error && <div className="auth-err" style={{ marginBottom: 14 }}>{error}</div>}
+
+      {/* URL input for Jira/ADO */}
+      {(source === "jira" || source === "ado") && (
+        <>
+          <div className="fld">
+            <label>{source === "jira" ? "Jira" : "Azure DevOps"} Project URL</label>
+            <input value={url} onChange={e => setUrl(e.target.value)} placeholder={source === "jira" ? "https://yourteam.atlassian.net/jira/software/projects/PROJ/board" : "https://dev.azure.com/org/project"} onKeyDown={e => e.key === "Enter" && handleUrlImport()} />
+          </div>
+          <button className="add" onClick={handleUrlImport} style={{ marginBottom: 14, gap: 6 }}><I.globe size={13} /> Fetch project details</button>
+          <p style={{ fontSize: 11.5, color: "var(--t3)", marginBottom: 14, lineHeight: 1.5 }}>
+            SyncBase extracts the project name and key from the URL. Team members can be added after import. For full data sync (tasks, sprints, team roster), export from {source === "jira" ? "Jira" : "ADO"} as JSON and use File Import.
+          </p>
+        </>
+      )}
+
+      {/* File upload */}
+      {source === "file" && (
+        <>
+          <div className="imp-drop" onClick={() => fileRef.current?.click()}>
+            <I.download size={24} color="var(--t3)" />
+            <p style={{ fontSize: 13, color: "var(--t2)", marginTop: 8 }}>Click to upload a .json or .csv file</p>
+            <p style={{ fontSize: 11, color: "var(--t3)", marginTop: 4 }}>Supports Jira export, ADO export, or SyncBase backup</p>
+          </div>
+          <input ref={fileRef} type="file" accept=".json,.csv" style={{ display: "none" }} onChange={handleFileUpload} />
+        </>
+      )}
+
+      {/* Preview */}
+      {preview && (
+        <div className="imp-preview">
+          <h4>Preview</h4>
+          <div className="imp-row"><span className="imp-label">Project name</span><span className="imp-val">{preview.name}</span></div>
+          {preview.description && <div className="imp-row"><span className="imp-label">Description</span><span className="imp-val" style={{ maxWidth: 250, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{preview.description}</span></div>}
+          <div className="imp-row"><span className="imp-label">Source</span><span className="imp-val">{preview.source}</span></div>
+          {preview.members?.length > 0 && <div className="imp-row"><span className="imp-label">Team members</span><span className="imp-val">{preview.members.length} found</span></div>}
+          {preview.itemCount && <div className="imp-row"><span className="imp-label">Items</span><span className="imp-val">{preview.itemCount} rows</span></div>}
+          <div className="imp-row"><span className="imp-label">Timeline</span><span className="imp-val">{preview.totalWeeks} weeks</span></div>
+
+          <div className="fld" style={{ marginTop: 12, marginBottom: 0 }}>
+            <label>Color theme</label>
+            <div className="pal-pk">{Object.entries(PALETTES).map(([k, v]) => <div key={k} className={`pal-d ${palette === k ? "sel" : ""}`} style={{ background: v.grad }} onClick={() => setPalette(k)} />)}</div>
+          </div>
+        </div>
+      )}
     </Modal>
   );
 }
@@ -1675,7 +1874,7 @@ function SettingsTab({ proj, pal: palProp, onUpdate, onDelete, onBack }) {
   );
 }
 
-function ProjectList({ projects, onSelect, onNew, onHome, dark, toggleDark, user, onLogout }) {
+function ProjectList({ projects, onSelect, onNew, onImport, onHome, dark, toggleDark, user, onLogout }) {
   const [viewMode, setViewMode] = useState("cards"); // cards | report
   const [showArchive, setShowArchive] = useState(false);
   const [query, setQuery] = useState("");
@@ -1737,6 +1936,7 @@ function ProjectList({ projects, onSelect, onNew, onHome, dark, toggleDark, user
               <button className={viewMode === "report" ? "active" : ""} onClick={() => setViewMode("report")}><I.bar size={12} /> Report</button>
               <button className={viewMode === "activity" ? "active" : ""} onClick={() => setViewMode("activity")}><I.clock size={12} /> Activity</button>
             </div>
+            <button className="add" onClick={onImport} style={{ gap: 6 }}><I.download size={13} /> Import</button>
             <button className="add" onClick={onNew}><I.plus size={13} /> New project</button>
           </div>
         </div>
@@ -2289,6 +2489,9 @@ export default function App() {
     const p = { id: uid(), name: f.name, description: f.description, palette: f.palette, status: "not-started", startDate: new Date().toISOString().split("T")[0], endDate: daysFromNow(f.totalWeeks * 7), currentWeek: 1, totalWeeks: f.totalWeeks, stakeholders: [], updates: [], decisions: [], actions: [], tags: [], archived: false, sprintConfig: { type: "sprint", length: 2, currentSprint: 1, phases: [] }, okrs: [], integrations: { slack: "", jira: "", gcal: false } };
     setProjects((prev) => [...prev, p]); setModal(null); openP(p.id);
   };
+  const importP = (p) => {
+    setProjects((prev) => [...prev, p]); setModal(null); openP(p.id);
+  };
   const updateP = (u) => setProjects((prev) => prev.map((p) => p.id === u.id ? u : p));
   const deleteP = (id) => { setProjects((prev) => prev.filter((p) => p.id !== id)); back(); };
 
@@ -2323,9 +2526,10 @@ export default function App() {
   return (
     <div className={dark ? "dark" : ""}>
       <style>{css}</style>
-      {view === "list" && <ProjectList projects={projects} onSelect={openP} onNew={() => setModal("new")} onHome={goHome} dark={dark} toggleDark={toggleDark} user={user} onLogout={handleLogout} />}
+      {view === "list" && <ProjectList projects={projects} onSelect={openP} onNew={() => setModal("new")} onImport={() => setModal("import")} onHome={goHome} dark={dark} toggleDark={toggleDark} user={user} onLogout={handleLogout} />}
       {view === "project" && active && <Dashboard project={active} onBack={back} onUpdate={updateP} onDelete={deleteP} dark={dark} toggleDark={toggleDark} user={user} onLogout={handleLogout} />}
       {modal === "new" && <NewProjectModal onClose={() => setModal(null)} onSave={createP} />}
+      {modal === "import" && <ImportProjectModal onClose={() => setModal(null)} onImport={importP} />}
     </div>
   );
 }
