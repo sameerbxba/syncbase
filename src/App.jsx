@@ -79,6 +79,13 @@ const SAMPLE = {
     { id: uid(), title: "Write API documentation for v2", owner: "David Kim", dueDate: daysFromNow(7), priority: "medium", status: "todo", project: "Engineering" },
     { id: uid(), title: "User testing session scheduling", owner: "You", dueDate: daysFromNow(3), priority: "high", status: "in-progress", project: "Product" },
   ],
+  risks: [
+    { id: uid(), title: "Third-party auth provider outage during launch week", likelihood: "low", impact: "high", mitigation: "Set up fallback to email/password auth. Monitor provider status page.", owner: "Sarah Chen", status: "open", date: daysFromNow(-5) },
+    { id: uid(), title: "App store review rejection delays launch by 1-2 weeks", likelihood: "medium", impact: "high", mitigation: "Submit for review 2 weeks early. Prepare expedited review request.", owner: "You", status: "open", date: daysFromNow(-3) },
+  ],
+  issues: [
+    { id: uid(), title: "API latency exceeds target on feed endpoint", severity: "high", description: "P95 latency at 800ms vs. 200ms target after last deployment. Rolling back while investigating.", owner: "Sarah Chen", status: "in-progress", date: daysFromNow(-3) },
+  ],
 };
 
 const SAMPLE2 = {
@@ -117,6 +124,15 @@ const SAMPLE2 = {
     { id: uid(), title: "Brief VP Revenue on revised launch scope", owner: "You", dueDate: daysFromNow(1), priority: "high", status: "todo", project: "Leadership" },
     { id: uid(), title: "Address auto-fill browser compatibility fix", owner: "Alex Rivera", dueDate: daysFromNow(4), priority: "medium", status: "todo", project: "Engineering" },
   ],
+  risks: [
+    { id: uid(), title: "Apple Pay certification takes longer than 5 business days", likelihood: "medium", impact: "high", mitigation: "Already pivoted to Google Pay first. Apple Pay becomes fast-follow in v1.1.", owner: "Alex Rivera", status: "mitigated", date: daysFromNow(-2) },
+    { id: uid(), title: "Stripe rate increase before contract renewal", likelihood: "low", impact: "medium", mitigation: "Lock in current rate with 12-month commitment. Finance aware.", owner: "You", status: "open", date: daysFromNow(-10) },
+    { id: uid(), title: "Conversion tracking blocked by ad blockers", likelihood: "high", impact: "medium", mitigation: "Implement server-side tracking as backup. Lena investigating.", owner: "Lena Park", status: "open", date: daysFromNow(-5) },
+  ],
+  issues: [
+    { id: uid(), title: "Legal review stalled — James OOO for 2 weeks", severity: "high", description: "Payment data retention policy needs legal sign-off before launch. James hasn't responded. Escalated to his manager.", owner: "You", status: "in-progress", date: daysFromNow(-7) },
+    { id: uid(), title: "Address auto-fill fails on Firefox and Safari", severity: "medium", description: "2 of 8 test users hit this in usability testing. Google Chrome works fine. Investigating browser-specific API differences.", owner: "Alex Rivera", status: "in-progress", date: daysFromNow(-4) },
+  ],
   raci: { workstreams: [{ id: "ws1", name: "Payment Integration" }, { id: "ws2", name: "UX & Testing" }, { id: "ws3", name: "Legal & Compliance" }, { id: "ws4", name: "Launch & GTM" }], assignments: {} },
 };
 
@@ -150,6 +166,10 @@ const SAMPLE3 = {
     { id: uid(), title: "Redesign navigation sidebar", owner: "Rachel Kim", dueDate: daysFromNow(12), priority: "medium", status: "todo", project: "Platform" },
     { id: uid(), title: "Write onboarding guide for new KB", owner: "Omar Hassan", dueDate: daysFromNow(10), priority: "low", status: "todo", project: "Content" },
   ],
+  risks: [
+    { id: uid(), title: "Notion migration API changes mid-project", likelihood: "low", impact: "medium", mitigation: "Pin API version. Have manual export as fallback.", owner: "Rachel Kim", status: "open", date: daysFromNow(-8) },
+  ],
+  issues: [],
   raci: { workstreams: [], assignments: {} },
 };
 
@@ -185,6 +205,8 @@ const SAMPLE4 = {
     { id: uid(), title: "Write post-mortem and share learnings", owner: "You", dueDate: daysFromNow(5), priority: "medium", status: "todo", project: "Product" },
     { id: uid(), title: "Plan V2 improvements based on post-launch data", owner: "You", dueDate: daysFromNow(10), priority: "low", status: "todo", project: "Product" },
   ],
+  risks: [],
+  issues: [],
   raci: { workstreams: [], assignments: {} },
 };
 
@@ -346,6 +368,26 @@ body{font-family:var(--f);background:var(--bg);color:var(--txt);-webkit-font-smo
 
 /* Import */
 .imp-tabs{display:flex;gap:2px;padding:3px;border-radius:100px;background:var(--hover);border:1px solid var(--bl);margin-bottom:20px}
+
+/* RAID Log */
+.raid-filters{display:flex;gap:4px;margin-bottom:14px}
+.raid-chip{padding:5px 14px;border-radius:100px;border:1px solid var(--bl);background:var(--card);font-family:var(--f);font-size:12px;font-weight:500;color:var(--t3);cursor:pointer;transition:var(--tr);display:inline-flex;align-items:center;gap:5px}
+.raid-chip:hover{border-color:var(--border);color:var(--t2)}
+.raid-chip.on{border-color:#6366f1;background:rgba(99,102,241,.08);color:#6366f1}
+.dark .raid-chip.on{border-color:#818cf8;color:#a5b4fc}
+.raid-item{padding:18px;border-radius:var(--r);background:var(--card);border:1px solid var(--bl);margin-bottom:8px;transition:var(--tr)}
+.raid-item:hover{border-color:var(--border)}
+.raid-item-h{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.raid-item-title{font-size:14px;font-weight:600;color:var(--txt)}
+.raid-badge{padding:2px 8px;border-radius:100px;font-size:10.5px;font-weight:600}
+.raid-item-body{font-size:13px;color:var(--t2);line-height:1.55;margin-bottom:6px}
+.raid-item-meta{font-size:11.5px;color:var(--t3);display:flex;gap:10px}
+.raid-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.raid-summary-card{padding:14px;border-radius:var(--rs);background:var(--card);border:1px solid var(--bl);text-align:center}
+.raid-summary-card .rs-v{font-family:var(--fm);font-size:22px;font-weight:700}
+.raid-summary-card .rs-l{font-size:10.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;font-weight:500}
+
+/* Import continued */
 .imp-tab{flex:1;padding:8px 12px;border-radius:100px;border:none;font-family:var(--f);font-size:12.5px;font-weight:500;color:var(--t3);cursor:pointer;transition:var(--tr);background:transparent;text-align:center}
 .imp-tab.on{background:var(--card);color:var(--txt);box-shadow:0 1px 3px rgba(0,0,0,.06)}
 .dark .imp-tab.on{box-shadow:0 1px 3px rgba(0,0,0,.2)}
@@ -995,6 +1037,228 @@ function AddStakeholderModal({ onClose, onSave, pal }) {
   );
 }
 
+function AddRiskModal({ onClose, onSave, pal }) {
+  const [f, setF] = useState({ title: "", likelihood: "medium", impact: "medium", mitigation: "", owner: "" });
+  const s = (k, v) => setF((p) => ({ ...p, [k]: v }));
+  const p = PALETTES[pal] || PALETTES.indigo;
+  return (
+    <Modal title="Add Risk" onClose={onClose} footer={<>
+      <button className="btn-gh" onClick={onClose}>Cancel</button>
+      <button className="btn-sub" style={{ background: p.primary }} disabled={!f.title.trim()} onClick={() => f.title.trim() && onSave({ ...f, id: uid(), status: "open", date: new Date().toISOString().split("T")[0] })}>Add risk</button>
+    </>}>
+      <div className="fld"><label>Risk description</label><input value={f.title} onChange={(e) => s("title", e.target.value)} placeholder="What might go wrong?" autoFocus /></div>
+      <div style={{ display: "flex", gap: 14 }}>
+        <div className="fld" style={{ flex: 1 }}><label>Likelihood</label><select value={f.likelihood} onChange={(e) => s("likelihood", e.target.value)}><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></div>
+        <div className="fld" style={{ flex: 1 }}><label>Impact</label><select value={f.impact} onChange={(e) => s("impact", e.target.value)}><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></div>
+      </div>
+      <div className="fld"><label>Mitigation plan</label><textarea value={f.mitigation} onChange={(e) => s("mitigation", e.target.value)} placeholder="How will you prevent or reduce this risk?" rows={2} /></div>
+      <div className="fld"><label>Owner</label><input value={f.owner} onChange={(e) => s("owner", e.target.value)} placeholder="Who's responsible for monitoring this?" /></div>
+    </Modal>
+  );
+}
+
+function AddIssueModal({ onClose, onSave, pal }) {
+  const [f, setF] = useState({ title: "", severity: "medium", description: "", owner: "" });
+  const s = (k, v) => setF((p) => ({ ...p, [k]: v }));
+  const p = PALETTES[pal] || PALETTES.indigo;
+  return (
+    <Modal title="Log Issue" onClose={onClose} footer={<>
+      <button className="btn-gh" onClick={onClose}>Cancel</button>
+      <button className="btn-sub" style={{ background: p.primary }} disabled={!f.title.trim()} onClick={() => f.title.trim() && onSave({ ...f, id: uid(), status: "in-progress", date: new Date().toISOString().split("T")[0] })}>Log issue</button>
+    </>}>
+      <div className="fld"><label>Issue</label><input value={f.title} onChange={(e) => s("title", e.target.value)} placeholder="What happened?" autoFocus /></div>
+      <div className="fld"><label>Severity</label><select value={f.severity} onChange={(e) => s("severity", e.target.value)}><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></div>
+      <div className="fld"><label>Description</label><textarea value={f.description} onChange={(e) => s("description", e.target.value)} placeholder="Details about the issue and its impact..." rows={3} /></div>
+      <div className="fld"><label>Owner</label><input value={f.owner} onChange={(e) => s("owner", e.target.value)} placeholder="Who's resolving this?" /></div>
+    </Modal>
+  );
+}
+
+// ── RAID Log View ──
+function RaidView({ proj, setModal, updateRiskStatus, updateIssueStatus }) {
+  const [filter, setFilter] = useState("all");
+  const risks = proj.risks || [];
+  const issues = proj.issues || [];
+  const actions = proj.actions || [];
+  const decisions = proj.decisions || [];
+
+  const openRisks = risks.filter(r => r.status === "open").length;
+  const openIssues = issues.filter(i => i.status !== "resolved" && i.status !== "closed").length;
+  const openActions = actions.filter(a => a.status !== "done").length;
+  const SEVERITY = { high: "#dc2626", medium: "#d97706", low: "#059669" };
+  const RISK_STATUS = { open: { bg: "#dc262612", c: "#dc2626" }, mitigated: { bg: "#d9770612", c: "#d97706" }, closed: { bg: "#05966912", c: "#059669" } };
+  const ISSUE_STATUS = { "in-progress": { bg: "#d9770612", c: "#d97706" }, resolved: { bg: "#05966912", c: "#059669" }, open: { bg: "#dc262612", c: "#dc2626" } };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+        <div>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--txt)", marginBottom: 4 }}>RAID Log</h3>
+          <p style={{ fontSize: 13, color: "var(--t2)" }}>Risks, Actions, Issues, and Decisions in one view</p>
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button className="add" onClick={() => setModal("risk")}><I.alert size={13} /> Add Risk</button>
+          <button className="add" onClick={() => setModal("issue")}><I.zap size={13} /> Add Issue</button>
+        </div>
+      </div>
+
+      {/* Summary cards */}
+      <div className="raid-summary">
+        <div className="raid-summary-card"><div className="rs-v" style={{ color: openRisks > 0 ? "#dc2626" : "#059669" }}>{openRisks}</div><div className="rs-l">Open Risks</div></div>
+        <div className="raid-summary-card"><div className="rs-v" style={{ color: openActions > 0 ? "#6366f1" : "#059669" }}>{openActions}</div><div className="rs-l">Open Actions</div></div>
+        <div className="raid-summary-card"><div className="rs-v" style={{ color: openIssues > 0 ? "#d97706" : "#059669" }}>{openIssues}</div><div className="rs-l">Active Issues</div></div>
+        <div className="raid-summary-card"><div className="rs-v" style={{ color: "#8b5cf6" }}>{decisions.length}</div><div className="rs-l">Decisions</div></div>
+      </div>
+
+      {/* Filter chips */}
+      <div className="raid-filters">
+        {[
+          { k: "all", l: "All", count: risks.length + actions.length + issues.length + decisions.length },
+          { k: "risks", l: "Risks", count: risks.length, c: "#dc2626" },
+          { k: "actions", l: "Actions", count: actions.length, c: "#6366f1" },
+          { k: "issues", l: "Issues", count: issues.length, c: "#d97706" },
+          { k: "decisions", l: "Decisions", count: decisions.length, c: "#8b5cf6" },
+        ].map(f => (
+          <button key={f.k} className={`raid-chip ${filter === f.k ? "on" : ""}`} onClick={() => setFilter(filter === f.k ? "all" : f.k)}>
+            {f.c && <span style={{ width: 6, height: 6, borderRadius: "50%", background: f.c }} />}
+            {f.l} ({f.count})
+          </button>
+        ))}
+      </div>
+
+      {/* Risks */}
+      {(filter === "all" || filter === "risks") && risks.length > 0 && (
+        <>
+          {filter === "all" && <div style={{ fontSize: 12, fontWeight: 600, color: "#dc2626", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8, marginTop: 8 }}>Risks</div>}
+          {risks.map(r => {
+            const st = RISK_STATUS[r.status] || RISK_STATUS.open;
+            return (
+              <div className="raid-item" key={r.id}>
+                <div className="raid-item-h">
+                  <span className="raid-badge" style={{ background: "#dc262612", color: "#dc2626" }}>R</span>
+                  <span className="raid-item-title">{r.title}</span>
+                  <span className="raid-badge" style={{ background: SEVERITY[r.likelihood] + "14", color: SEVERITY[r.likelihood] }}>{r.likelihood} likelihood</span>
+                  <span className="raid-badge" style={{ background: SEVERITY[r.impact] + "14", color: SEVERITY[r.impact] }}>{r.impact} impact</span>
+                  <select value={r.status} onChange={e => updateRiskStatus(r.id, e.target.value)} style={{ marginLeft: "auto", padding: "3px 8px", borderRadius: 100, border: `1px solid ${st.c}40`, background: st.bg, color: st.c, fontSize: 11, fontWeight: 600, fontFamily: "var(--f)", cursor: "pointer", outline: "none" }}>
+                    <option value="open">Open</option><option value="mitigated">Mitigated</option><option value="closed">Closed</option>
+                  </select>
+                </div>
+                {r.mitigation && <div className="raid-item-body"><strong style={{ color: "var(--txt)" }}>Mitigation:</strong> {r.mitigation}</div>}
+                <div className="raid-item-meta"><span>{r.owner}</span><span>{fmtFull(r.date)}</span></div>
+              </div>
+            );
+          })}
+        </>
+      )}
+
+      {/* Actions */}
+      {(filter === "all" || filter === "actions") && actions.length > 0 && (
+        <>
+          {filter === "all" && <div style={{ fontSize: 12, fontWeight: 600, color: "#6366f1", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8, marginTop: 16 }}>Actions</div>}
+          {actions.filter(a => a.status !== "done").map(a => {
+            const ov = isOverdue(a.dueDate);
+            return (
+              <div className="raid-item" key={a.id}>
+                <div className="raid-item-h">
+                  <span className="raid-badge" style={{ background: "rgba(99,102,241,.12)", color: "#6366f1" }}>A</span>
+                  <span className="raid-item-title">{a.title}</span>
+                  <span className="raid-badge" style={{ background: PRIORITY_COLORS[a.priority] + "14", color: PRIORITY_COLORS[a.priority] }}>{a.priority}</span>
+                  {ov && <span className="raid-badge" style={{ background: "#dc262612", color: "#dc2626" }}>Overdue</span>}
+                </div>
+                <div className="raid-item-meta"><span>{a.owner}</span><span>Due {fmt(a.dueDate)}</span>{a.project && <span>{a.project}</span>}</div>
+              </div>
+            );
+          })}
+        </>
+      )}
+
+      {/* Issues */}
+      {(filter === "all" || filter === "issues") && issues.length > 0 && (
+        <>
+          {filter === "all" && <div style={{ fontSize: 12, fontWeight: 600, color: "#d97706", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8, marginTop: 16 }}>Issues</div>}
+          {issues.map(iss => {
+            const st = ISSUE_STATUS[iss.status] || ISSUE_STATUS.open;
+            return (
+              <div className="raid-item" key={iss.id}>
+                <div className="raid-item-h">
+                  <span className="raid-badge" style={{ background: "rgba(217,119,6,.12)", color: "#d97706" }}>I</span>
+                  <span className="raid-item-title">{iss.title}</span>
+                  <span className="raid-badge" style={{ background: SEVERITY[iss.severity] + "14", color: SEVERITY[iss.severity] }}>{iss.severity} severity</span>
+                  <select value={iss.status} onChange={e => updateIssueStatus(iss.id, e.target.value)} style={{ marginLeft: "auto", padding: "3px 8px", borderRadius: 100, border: `1px solid ${st.c}40`, background: st.bg, color: st.c, fontSize: 11, fontWeight: 600, fontFamily: "var(--f)", cursor: "pointer", outline: "none" }}>
+                    <option value="open">Open</option><option value="in-progress">In Progress</option><option value="resolved">Resolved</option>
+                  </select>
+                </div>
+                {iss.description && <div className="raid-item-body">{iss.description}</div>}
+                <div className="raid-item-meta"><span>{iss.owner}</span><span>{fmtFull(iss.date)}</span></div>
+              </div>
+            );
+          })}
+        </>
+      )}
+
+      {/* Decisions */}
+      {(filter === "all" || filter === "decisions") && decisions.length > 0 && (
+        <>
+          {filter === "all" && <div style={{ fontSize: 12, fontWeight: 600, color: "#8b5cf6", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8, marginTop: 16 }}>Decisions</div>}
+          {decisions.map(d => (
+            <div className="raid-item" key={d.id}>
+              <div className="raid-item-h">
+                <span className="raid-badge" style={{ background: "rgba(139,92,246,.12)", color: "#8b5cf6" }}>D</span>
+                <span className="raid-item-title">{d.title}</span>
+                <span className="raid-badge" style={{ background: PRIORITY_COLORS[d.impact] + "14", color: PRIORITY_COLORS[d.impact] }}>{d.impact} impact</span>
+              </div>
+              <div className="raid-item-body">{d.rationale}</div>
+              <div className="raid-item-meta"><span>{d.decidedBy}</span><span>{fmtFull(d.date)}</span></div>
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* Empty state */}
+      {risks.length === 0 && issues.length === 0 && actions.length === 0 && decisions.length === 0 && (
+        <div className="empty" style={{ padding: 40 }}><I.alert size={28} color="var(--t3)" /><p>No RAID items yet. Add risks, actions, issues, or decisions to populate this log.</p></div>
+      )}
+    </div>
+  );
+}
+
+function AddRiskModal({ onClose, onSave, pal }) {
+  const [f, setF] = useState({ title: "", likelihood: "medium", impact: "high", mitigation: "", owner: "" });
+  const s = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const p = PALETTES[pal] || PALETTES.indigo;
+  return (
+    <Modal title="Add Risk" onClose={onClose} footer={<>
+      <button className="btn-gh" onClick={onClose}>Cancel</button>
+      <button className="btn-sub" style={{ background: p.primary }} disabled={!f.title.trim()} onClick={() => f.title.trim() && onSave({ ...f, id: uid(), status: "open", date: new Date().toISOString().split("T")[0] })}>Add Risk</button>
+    </>}>
+      <div className="fld"><label>Risk description</label><input value={f.title} onChange={e => s("title", e.target.value)} placeholder="What could go wrong?" autoFocus /></div>
+      <div style={{ display: "flex", gap: 14 }}>
+        <div className="fld" style={{ flex: 1 }}><label>Likelihood</label><select value={f.likelihood} onChange={e => s("likelihood", e.target.value)}><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></div>
+        <div className="fld" style={{ flex: 1 }}><label>Impact</label><select value={f.impact} onChange={e => s("impact", e.target.value)}><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></div>
+      </div>
+      <div className="fld"><label>Mitigation plan</label><textarea value={f.mitigation} onChange={e => s("mitigation", e.target.value)} placeholder="How will you reduce or avoid this risk?" /></div>
+      <div className="fld"><label>Owner</label><input value={f.owner} onChange={e => s("owner", e.target.value)} placeholder="Who's responsible for monitoring this?" /></div>
+    </Modal>
+  );
+}
+
+function AddIssueModal({ onClose, onSave, pal }) {
+  const [f, setF] = useState({ title: "", severity: "high", description: "", owner: "" });
+  const s = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const p = PALETTES[pal] || PALETTES.indigo;
+  return (
+    <Modal title="Add Issue" onClose={onClose} footer={<>
+      <button className="btn-gh" onClick={onClose}>Cancel</button>
+      <button className="btn-sub" style={{ background: p.primary }} disabled={!f.title.trim()} onClick={() => f.title.trim() && onSave({ ...f, id: uid(), status: "open", date: new Date().toISOString().split("T")[0] })}>Add Issue</button>
+    </>}>
+      <div className="fld"><label>Issue description</label><input value={f.title} onChange={e => s("title", e.target.value)} placeholder="What happened?" autoFocus /></div>
+      <div className="fld"><label>Severity</label><select value={f.severity} onChange={e => s("severity", e.target.value)}><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></div>
+      <div className="fld"><label>Details</label><textarea value={f.description} onChange={e => s("description", e.target.value)} placeholder="What's the impact and current situation?" /></div>
+      <div className="fld"><label>Owner</label><input value={f.owner} onChange={e => s("owner", e.target.value)} placeholder="Who's responsible for resolving this?" /></div>
+    </Modal>
+  );
+}
+
 // ── Comment Thread ──
 function CommentThread({ comments = [], onAdd, accentColor = "#6366f1" }) {
   const [open, setOpen] = useState(false);
@@ -1043,6 +1307,10 @@ function Dashboard({ project: proj, onBack, onUpdate, onDelete, dark, toggleDark
   const addS = (s) => { onUpdate({ ...proj, stakeholders: [...proj.stakeholders, s] }); setModal(null); };
   const togA = (id) => onUpdate({ ...proj, actions: proj.actions.map((a) => a.id === id ? { ...a, status: a.status === "done" ? "todo" : "done" } : a) });
   const delA = (id) => onUpdate({ ...proj, actions: proj.actions.filter((a) => a.id !== id) });
+  const addRisk = (r) => { onUpdate({ ...proj, risks: [...(proj.risks || []), r] }); setModal(null); };
+  const addIssue = (iss) => { onUpdate({ ...proj, issues: [...(proj.issues || []), iss] }); setModal(null); };
+  const updateRiskStatus = (id, status) => onUpdate({ ...proj, risks: (proj.risks || []).map(r => r.id === id ? { ...r, status } : r) });
+  const updateIssueStatus = (id, status) => onUpdate({ ...proj, issues: (proj.issues || []).map(i => i.id === id ? { ...i, status } : i) });
 
   // Comments
   const addComment = (type, itemId, text) => {
@@ -1084,7 +1352,7 @@ function Dashboard({ project: proj, onBack, onUpdate, onDelete, dark, toggleDark
   const [showDigest, setShowDigest] = useState(false);
   const [digestText, setDigestText] = useState("");
 
-  const TABS = [{ k: "overview", l: "Overview", i: <I.bar size={13} /> }, { k: "timeline", l: "Timeline", i: <I.clock size={13} /> }, { k: "decisions", l: "Decisions", i: <I.file size={13} /> }, { k: "actions", l: "Actions", i: <I.target size={13} /> }, { k: "stakeholders", l: "Stakeholders", i: <I.users size={13} /> }, { k: "raci", l: "RACI", i: <I.shield size={13} /> }, { k: "settings", l: "Settings", i: <I.gear size={13} /> }];
+  const TABS = [{ k: "overview", l: "Overview", i: <I.bar size={13} /> }, { k: "timeline", l: "Timeline", i: <I.clock size={13} /> }, { k: "raid", l: "RAID Log", i: <I.alert size={13} /> }, { k: "decisions", l: "Decisions", i: <I.file size={13} /> }, { k: "actions", l: "Actions", i: <I.target size={13} /> }, { k: "stakeholders", l: "Stakeholders", i: <I.users size={13} /> }, { k: "raci", l: "RACI", i: <I.shield size={13} /> }, { k: "settings", l: "Settings", i: <I.gear size={13} /> }];
   const avClr = ["#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#f59e0b", "#10b981", "#06b6d4"];
 
   return (
@@ -1225,6 +1493,8 @@ function Dashboard({ project: proj, onBack, onUpdate, onDelete, dark, toggleDark
             ))}
         </div>}
 
+        {tab === "raid" && <RaidView proj={proj} setModal={setModal} updateRiskStatus={updateRiskStatus} updateIssueStatus={updateIssueStatus} />}
+
         {tab === "decisions" && <div>
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }}><button className="add" onClick={() => setModal("decision")}><I.plus size={13} /> Log decision</button></div>
           {proj.decisions.length === 0 ? <div className="empty"><I.file size={28} color="var(--t3)" /><p>No decisions logged</p></div> :
@@ -1286,6 +1556,8 @@ function Dashboard({ project: proj, onBack, onUpdate, onDelete, dark, toggleDark
       {modal === "decision" && <AddDecisionModal pal={proj.palette} onClose={() => setModal(null)} onSave={addD} />}
       {modal === "action" && <AddActionModal pal={proj.palette} onClose={() => setModal(null)} onSave={addA} />}
       {modal === "stakeholder" && <AddStakeholderModal pal={proj.palette} onClose={() => setModal(null)} onSave={addS} />}
+      {modal === "risk" && <AddRiskModal pal={proj.palette} onClose={() => setModal(null)} onSave={addRisk} />}
+      {modal === "issue" && <AddIssueModal pal={proj.palette} onClose={() => setModal(null)} onSave={addIssue} />}
     </div>
   );
 }
