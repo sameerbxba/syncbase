@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+// SyncBase v1.3 — RAID Log, Import, Activity Feed, Comments, RACI
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 const fmt = (d) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
