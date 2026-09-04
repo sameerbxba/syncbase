@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-// SyncBase v1.3 — RAID Log, Import, Activity Feed, Comments, RACI
+// SyncBase v1.5 — Alignment Scanner, RAID Log, Import, Activity Feed, Comments, RACI
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 const fmt = (d) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -372,6 +372,23 @@ body{font-family:var(--f);background:var(--bg);color:var(--txt);-webkit-font-smo
 
 /* RAID Log */
 .raid-filters{display:flex;gap:4px;margin-bottom:14px}
+
+/* Alignment Scanner */
+.align-scan-btn{padding:12px 28px;border-radius:var(--r);border:none;font-family:var(--f);font-size:14px;font-weight:600;color:#fff;cursor:pointer;transition:var(--tr);display:inline-flex;align-items:center;gap:8px}
+.align-scan-btn:hover{filter:brightness(1.1)}
+.align-scan-btn:disabled{opacity:.5;cursor:not-allowed}
+.align-card{padding:20px;border-radius:var(--r);background:var(--card);border:1px solid var(--bl);margin-bottom:12px;transition:var(--tr)}
+.align-card:hover{border-color:var(--border)}
+.align-sev{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:100px;font-size:10.5px;font-weight:600}
+.align-evidence{margin-top:12px;padding:12px 14px;border-radius:var(--rs);background:var(--hover);border-left:3px solid var(--border);font-size:12.5px;color:var(--t2);line-height:1.55}
+.align-evidence-src{font-size:10.5px;color:var(--t3);margin-top:6px;font-weight:500}
+.align-pulse{display:inline-block;width:8px;height:8px;border-radius:50%;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+.align-empty{text-align:center;padding:40px 20px;color:var(--t3)}
+.align-empty p{margin-top:8px;font-size:13px;line-height:1.6;max-width:420px;margin-left:auto;margin-right:auto}
+.align-timestamp{font-size:11px;color:var(--t3);margin-top:16px;display:flex;align-items:center;gap:6px}
+
+/* RAID Log continued */
 .raid-chip{padding:5px 14px;border-radius:100px;border:1px solid var(--bl);background:var(--card);font-family:var(--f);font-size:12px;font-weight:500;color:var(--t3);cursor:pointer;transition:var(--tr);display:inline-flex;align-items:center;gap:5px}
 .raid-chip:hover{border-color:var(--border);color:var(--t2)}
 .raid-chip.on{border-color:#6366f1;background:rgba(99,102,241,.08);color:#6366f1}
@@ -1075,6 +1092,178 @@ function AddIssueModal({ onClose, onSave, pal }) {
   );
 }
 
+// ── Alignment Scanner ──
+function AlignmentTab({ proj, pal }) {
+  const [results, setResults] = useState(null);
+  const [scanning, setScanning] = useState(false);
+  const [error, setError] = useState("");
+  const [lastScan, setLastScan] = useState(null);
+
+  const runScan = async () => {
+    setScanning(true);
+    setError("");
+
+    // Build the artifact payload — group by author/team
+    const artifacts = [];
+
+    (proj.updates || []).forEach(u => {
+      artifacts.push({ type: "update", title: u.title, author: u.author, date: u.date, status: u.status, body: u.body || "" });
+    });
+    (proj.decisions || []).forEach(d => {
+      artifacts.push({ type: "decision", title: d.title, author: d.decidedBy, date: d.date, rationale: d.rationale, alternatives: d.alternatives?.join(", ") || "", impact: d.impact });
+    });
+    (proj.actions || []).forEach(a => {
+      artifacts.push({ type: "action", title: a.title, owner: a.owner, dueDate: a.dueDate, status: a.status, priority: a.priority });
+    });
+    (proj.risks || []).forEach(r => {
+      artifacts.push({ type: "risk", title: r.title, owner: r.owner, status: r.status, mitigation: r.mitigation });
+    });
+    (proj.issues || []).forEach(i => {
+      artifacts.push({ type: "issue", title: i.title, owner: i.owner, status: i.status, description: i.description });
+    });
+
+    const stakeholderContext = (proj.stakeholders || []).map(s => `${s.name} (${s.role}, ${s.team})`).join("; ");
+
+    if (artifacts.length < 3) {
+      setError("Not enough project data to scan. Add more updates, decisions, or actions first.");
+      setScanning(false);
+      return;
+    }
+
+    const prompt = `You are an alignment analyst for cross-functional product teams. You read across a project's artifacts — updates, decisions, actions, risks, and issues — from different authors and teams, and you identify where stated assumptions DIVERGE across groups.
+
+PROJECT: ${proj.name}
+DESCRIPTION: ${proj.description || ""}
+STAKEHOLDERS: ${stakeholderContext}
+
+PROJECT ARTIFACTS:
+${JSON.stringify(artifacts, null, 1)}
+
+TASK: Analyze these artifacts for assumption misalignment — places where different people or teams appear to be working from different assumptions about scope, timeline, priorities, dependencies, or what "done" means.
+
+IMPORTANT: Precision over recall. Do NOT flag trivial or speculative conflicts. Only surface conflicts where the evidence strongly suggests two parties hold genuinely different assumptions that could cost the project its schedule, budget, or deliverable quality. If you cannot find strong evidence of real misalignment, say so honestly — do not manufacture conflicts.
+
+Respond ONLY with a JSON array of 1-3 conflicts (or empty array if none found). No other text, no markdown, no backticks. Each object must have:
+- "title": short conflict name (under 10 words)
+- "severity": "high", "medium", or "low"
+- "description": 2-3 sentences explaining the divergence
+- "party_a": { "who": name/team, "assumption": what they appear to believe, "evidence": specific artifact title that supports this }
+- "party_b": { "who": name/team, "assumption": what they appear to believe, "evidence": specific artifact title that supports this }
+- "recommendation": one concrete action the PM should take to resolve this (under 2 sentences)
+
+Return ONLY the JSON array.`;
+
+    try {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}`);
+      }
+
+      const data = await response.json();
+      const text = data.content?.map(c => c.text || "").join("") || "";
+      const clean = text.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+      setResults(Array.isArray(parsed) ? parsed : []);
+      setLastScan(new Date().toLocaleString());
+    } catch (err) {
+      console.error("Alignment scan error:", err);
+      setError("Could not complete the scan. Please try again.");
+    }
+    setScanning(false);
+  };
+
+  const SEV = { high: { bg: "#dc262614", c: "#dc2626", label: "High severity" }, medium: { bg: "#d9770614", c: "#d97706", label: "Medium severity" }, low: { bg: "#05966914", c: "#059669", label: "Low severity" } };
+
+  return (
+    <div style={{ maxWidth: 800 }}>
+      <div style={{ marginBottom: 24 }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--txt)", marginBottom: 4 }}>Alignment Scanner</h3>
+        <p style={{ fontSize: 13, color: "var(--t2)", lineHeight: 1.6, marginBottom: 16 }}>
+          Reads across this project's updates, decisions, actions, risks, and issues to surface where different teams or stakeholders appear to be working from different assumptions. Precision over recall — only conflicts with strong evidence are flagged.
+        </p>
+        <button className="align-scan-btn" style={{ background: pal.grad }} onClick={runScan} disabled={scanning}>
+          {scanning ? (<><span className="align-pulse" style={{ background: "#fff" }} /> Scanning project artifacts...</>) : (<><I.zap size={15} /> Scan for misalignment</>)}
+        </button>
+      </div>
+
+      {error && <div className="auth-err" style={{ marginBottom: 16, background: "rgba(220,38,38,.08)", border: "1px solid rgba(220,38,38,.15)" }}>{error}</div>}
+
+      {results && results.length === 0 && (
+        <div className="align-empty">
+          <I.shield size={32} color="#059669" />
+          <p style={{ color: "#059669", fontWeight: 600, fontSize: 15, marginBottom: 4 }}>No misalignment detected</p>
+          <p>All artifacts appear consistent across teams and stakeholders. No assumption divergences found with sufficient evidence to flag. This does not guarantee perfect alignment — it means the documented artifacts do not contain strong signals of conflict.</p>
+        </div>
+      )}
+
+      {results && results.length > 0 && (
+        <>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--t3)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 10 }}>
+            {results.length} conflict{results.length !== 1 ? "s" : ""} detected
+          </div>
+          {results.map((r, i) => {
+            const sev = SEV[r.severity] || SEV.medium;
+            return (
+              <div className="align-card" key={i}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: "var(--txt)" }}>{r.title}</span>
+                  <span className="align-sev" style={{ background: sev.bg, color: sev.c }}>{sev.label}</span>
+                </div>
+                <p style={{ fontSize: 13, color: "var(--t2)", lineHeight: 1.6, marginBottom: 14 }}>{r.description}</p>
+
+                {/* Party A */}
+                <div className="align-evidence">
+                  <div style={{ fontWeight: 600, color: "var(--txt)", marginBottom: 4 }}>{r.party_a?.who}</div>
+                  <div>Assumption: {r.party_a?.assumption}</div>
+                  <div className="align-evidence-src">Evidence: "{r.party_a?.evidence}"</div>
+                </div>
+
+                {/* vs */}
+                <div style={{ textAlign: "center", padding: "6px 0", fontSize: 11, fontWeight: 700, color: sev.c, letterSpacing: ".08em" }}>CONFLICTS WITH</div>
+
+                {/* Party B */}
+                <div className="align-evidence">
+                  <div style={{ fontWeight: 600, color: "var(--txt)", marginBottom: 4 }}>{r.party_b?.who}</div>
+                  <div>Assumption: {r.party_b?.assumption}</div>
+                  <div className="align-evidence-src">Evidence: "{r.party_b?.evidence}"</div>
+                </div>
+
+                {/* Recommendation */}
+                <div style={{ marginTop: 14, padding: "10px 14px", borderRadius: "var(--rs)", background: `${pal.primary}08`, border: `1px solid ${pal.primary}20` }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: pal.primary, marginBottom: 3 }}>RECOMMENDED ACTION</div>
+                  <div style={{ fontSize: 13, color: "var(--txt)", lineHeight: 1.5 }}>{r.recommendation}</div>
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
+
+      {lastScan && (
+        <div className="align-timestamp">
+          <I.clock size={11} /> Last scanned: {lastScan}
+        </div>
+      )}
+
+      {!results && !scanning && !error && (
+        <div className="align-empty">
+          <I.zap size={28} color="var(--t3)" />
+          <p>Click "Scan for misalignment" to analyze project artifacts across teams. The scanner reads updates, decisions, actions, risks, and issues to find where assumptions diverge.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── RAID Log View ──
 function RaidView({ proj, setModal, updateRiskStatus, updateIssueStatus }) {
   const [filter, setFilter] = useState("all");
@@ -1317,7 +1506,7 @@ function Dashboard({ project: proj, onBack, onUpdate, onDelete, dark, toggleDark
   const [showDigest, setShowDigest] = useState(false);
   const [digestText, setDigestText] = useState("");
 
-  const TABS = [{ k: "overview", l: "Overview", i: <I.bar size={13} /> }, { k: "timeline", l: "Timeline", i: <I.clock size={13} /> }, { k: "raid", l: "RAID Log", i: <I.alert size={13} /> }, { k: "decisions", l: "Decisions", i: <I.file size={13} /> }, { k: "actions", l: "Actions", i: <I.target size={13} /> }, { k: "stakeholders", l: "Stakeholders", i: <I.users size={13} /> }, { k: "raci", l: "RACI", i: <I.shield size={13} /> }, { k: "settings", l: "Settings", i: <I.gear size={13} /> }];
+  const TABS = [{ k: "overview", l: "Overview", i: <I.bar size={13} /> }, { k: "timeline", l: "Timeline", i: <I.clock size={13} /> }, { k: "alignment", l: "Alignment", i: <I.zap size={13} /> }, { k: "raid", l: "RAID Log", i: <I.alert size={13} /> }, { k: "decisions", l: "Decisions", i: <I.file size={13} /> }, { k: "actions", l: "Actions", i: <I.target size={13} /> }, { k: "stakeholders", l: "Stakeholders", i: <I.users size={13} /> }, { k: "raci", l: "RACI", i: <I.shield size={13} /> }, { k: "settings", l: "Settings", i: <I.gear size={13} /> }];
   const avClr = ["#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#f59e0b", "#10b981", "#06b6d4"];
 
   return (
@@ -1457,6 +1646,8 @@ function Dashboard({ project: proj, onBack, onUpdate, onDelete, dark, toggleDark
               </div>
             ))}
         </div>}
+
+        {tab === "alignment" && <AlignmentTab proj={proj} pal={pal} />}
 
         {tab === "raid" && <RaidView proj={proj} setModal={setModal} updateRiskStatus={updateRiskStatus} updateIssueStatus={updateIssueStatus} />}
 
